@@ -1,0 +1,342 @@
+<rdf:RDF
+    xmlns:ec2="http://geni-orca.renci.org/owl/ec2.owl#"
+    xmlns:kansei="http://geni-orca.renci.org/owl/kansei.owl#"
+    xmlns:app-color="http://geni-orca.renci.org/owl/app-color.owl#"
+    xmlns:geni="http://geni-orca.renci.org/owl/geni.owl#"
+    xmlns:domain="http://geni-orca.renci.org/owl/domain.owl#"
+    xmlns:eucalyptus="http://geni-orca.renci.org/owl/eucalyptus.owl#"
+    xmlns:collections="http://geni-orca.renci.org/owl/collections.owl#"
+    xmlns:openflow="http://geni-orca.renci.org/owl/openflow.owl#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:exogeni="http://geni-orca.renci.org/owl/exogeni.owl#"
+    xmlns:layer="http://geni-orca.renci.org/owl/layer.owl#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:request-schema="http://geni-orca.renci.org/owl/request.owl#"
+    xmlns:ip4="http://geni-orca.renci.org/owl/ip4.owl#"
+    xmlns:planetlab="http://geni-orca.renci.org/owl/planetlab.owl#"
+    xmlns:ethernet="http://geni-orca.renci.org/owl/ethernet.owl#"
+    xmlns:dtn="http://geni-orca.renci.org/owl/dtn.owl#"
+    xmlns:time="http://www.w3.org/2006/time#"
+    xmlns:request="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:modify-schema="http://geni-orca.renci.org/owl/modify.owl#"
+    xmlns:compute="http://geni-orca.renci.org/owl/compute.owl#"
+    xmlns:topology="http://geni-orca.renci.org/owl/topology.owl#"
+    xmlns:orca="http://geni-orca.renci.org/owl/orca.rdf#" > 
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Hadoop+2.7.1+%28Centos7%29">
+    <topology:hasName rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Hadoop 2.7.1 (Centos7)</topology:hasName>
+    <topology:hasURL>http://geni-images.renci.org/images/pruth/standard/hadoop/Hadoop-Centos7-v0.1/hadoop-centos7.v0.1.1.xml</topology:hasURL>
+    <topology:hasGUID>af212901b35c96e1b2abed7a937882fcae81a513</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#DiskImage"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#workers">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-workers"/>
+    <topology:hasGUID>105713b8-5c0b-4d9c-9a6f-fc99dc2728e4</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+#setup /etc/hosts
+echo $master.IP("Link0") $master.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+  echo $workers.get($j).IP("Link0")  `echo $workers.get($j).Name() | sed 's/\//-/g'`  &gt;&gt; /etc/hosts
+#end
+
+HADOOP_CONF_DIR=/home/hadoop/hadoop-2.7.1/etc/hadoop
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo ""  &gt; $CORE_SITE_FILE
+cat &gt; $CORE_SITE_FILE   &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+&lt;property&gt;
+  &lt;name&gt;fs.default.name&lt;/name&gt;
+    &lt;value&gt;hdfs://$master.Name():9000&lt;/value&gt;
+&lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $HDFS_SITE_FILE
+cat &gt; $HDFS_SITE_FILE   &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+ &lt;property&gt;
+    &lt;name&gt;dfs.datanode.du.reserved&lt;/name&gt;
+    &lt;!-- cluster variant --&gt;
+    &lt;value&gt;20000000000&lt;/value&gt;
+    &lt;description&gt;Reserved space in bytes per volume. Always leave this much space free for non dfs use.
+    &lt;/description&gt;
+  &lt;/property&gt;
+&lt;property&gt;
+ &lt;name&gt;dfs.replication&lt;/name&gt;
+ &lt;value&gt;2&lt;/value&gt;
+&lt;/property&gt;
+&lt;property&gt;
+  &lt;name&gt;dfs.name.dir&lt;/name&gt;
+    &lt;value&gt;file:///home/hadoop/hadoopdata/hdfs/namenode&lt;/value&gt;
+&lt;/property&gt;
+&lt;property&gt;
+  &lt;name&gt;dfs.data.dir&lt;/name&gt;
+    &lt;value&gt;file:///home/hadoop/hadoopdata/hdfs/datanode&lt;/value&gt;
+&lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+
+
+
+echo ""  &gt; $MAPRED_SITE_FILE
+cat &gt; $MAPRED_SITE_FILE   &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+  &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $YARN_SITE_FILE
+cat &gt; $YARN_SITE_FILE  &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+ &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.resource-tracker.address&lt;/name&gt;
+    &lt;value&gt;master:8031&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.address&lt;/name&gt;
+    &lt;value&gt;master:8032&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.scheduler.address&lt;/name&gt;
+    &lt;value&gt;master:8030&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.admin.address&lt;/name&gt;
+    &lt;value&gt;master:8033&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.webapp.address&lt;/name&gt;
+    &lt;value&gt;master:8088&lt;/value&gt;
+  &lt;/property&gt;
+&lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.resource-tracker.address&lt;/name&gt;
+    &lt;value&gt;master:8031&lt;/value&gt;
+  &lt;/property&gt;
+&lt;property&gt;
+  &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+    &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $SLAVES_FILE
+cat &gt; $SLAVES_FILE  &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+   `echo $workers.get($j).Name() | sed 's/\//-/g'` 
+#end
+EOF
+
+
+
+
+echo ""  &gt; /home/hadoop/.ssh/config
+cat &gt; /home/hadoop/.ssh/config &lt;&lt; EOF
+Host `echo $self.IP("Link0")  | sed 's/.[0-9][0-9]*$//g'`.* master workers-*  0.0.0.0
+   StrictHostKeyChecking no
+   UserKnownHostsFile=/dev/null
+EOF
+chown hadoop:hadoop /home/hadoop/.ssh/config
+chmod 600 /home/hadoop/.ssh/config
+
+
+echo DONE &gt; /home/hadoop/DONE</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Hadoop+2.7.1+%28Centos7%29"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <layer:numCE rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</layer:numCE>
+    <request-schema:groupName>workers</request-schema:groupName>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ServerCloud"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-workers"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-master"/>
+    <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
+    <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
+    <topology:hasGUID>01fa0c09-decc-4d62-a852-de0514354f99</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#NetworkConnection"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#TermDuration">
+    <time:days rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1</time:days>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#DurationDescription"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#master">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-master"/>
+    <topology:hasGUID>e84609b8-a458-4e1a-935e-7ec14214d2f7</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+
+#setup /etc/hosts
+echo $master.IP("Link0") $master.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+  echo $workers.get($j).IP("Link0")  `echo $workers.get($j).Name() | sed 's/\//-/g'`  &gt;&gt; /etc/hosts
+#end
+
+
+
+HADOOP_CONF_DIR=/home/hadoop/hadoop-2.7.1/etc/hadoop
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo ""  &gt; $CORE_SITE_FILE
+cat &gt; $CORE_SITE_FILE   &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+&lt;property&gt;
+  &lt;name&gt;fs.default.name&lt;/name&gt;
+    &lt;value&gt;hdfs://$master.Name():9000&lt;/value&gt;
+&lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $HDFS_SITE_FILE
+cat &gt; $HDFS_SITE_FILE   &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+ &lt;property&gt;
+    &lt;name&gt;dfs.datanode.du.reserved&lt;/name&gt;
+    &lt;!-- cluster variant --&gt;
+    &lt;value&gt;20000000000&lt;/value&gt;
+    &lt;description&gt;Reserved space in bytes per volume. Always leave this much space free for non dfs use.
+    &lt;/description&gt;
+  &lt;/property&gt;
+&lt;property&gt;
+ &lt;name&gt;dfs.replication&lt;/name&gt;
+ &lt;value&gt;2&lt;/value&gt;
+&lt;/property&gt;
+&lt;property&gt;
+  &lt;name&gt;dfs.name.dir&lt;/name&gt;
+    &lt;value&gt;file:///home/hadoop/hadoopdata/hdfs/namenode&lt;/value&gt;
+&lt;/property&gt;
+&lt;property&gt;
+  &lt;name&gt;dfs.data.dir&lt;/name&gt;
+    &lt;value&gt;file:///home/hadoop/hadoopdata/hdfs/datanode&lt;/value&gt;
+&lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $MAPRED_SITE_FILE
+cat &gt; $MAPRED_SITE_FILE   &lt;&lt; EOF
+&lt;configuration&gt;
+  &lt;property&gt;
+  &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $YARN_SITE_FILE
+cat &gt; $YARN_SITE_FILE  &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.resource-tracker.address&lt;/name&gt;
+    &lt;value&gt;master:8031&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.address&lt;/name&gt;
+    &lt;value&gt;master:8032&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.scheduler.address&lt;/name&gt;
+    &lt;value&gt;master:8030&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.admin.address&lt;/name&gt;
+    &lt;value&gt;master:8033&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.webapp.address&lt;/name&gt;
+    &lt;value&gt;master:8088&lt;/value&gt;
+  &lt;/property&gt;
+&lt;property&gt;
+  &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+    &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+echo ""  &gt; $SLAVES_FILE
+cat &gt; $SLAVES_FILE  &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+   `echo $workers.get($j).Name() | sed 's/\//-/g'` 
+#end
+EOF
+
+
+echo ""  &gt; /home/hadoop/.ssh/config
+cat &gt; /home/hadoop/.ssh/config &lt;&lt; EOF
+Host `echo $self.IP("Link0")  | sed 's/.[0-9][0-9]*$//g'`.* master workers-* 0.0.0.0
+   StrictHostKeyChecking no
+   UserKnownHostsFile=/dev/null
+EOF
+
+chmod 600 /home/hadoop/.ssh/config
+chown hadoop:hadoop /home/hadoop/.ssh/config
+
+
+echo DONE &gt; /home/hadoop/DONE
+
+
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Hadoop+2.7.1+%28Centos7%29"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-workers-ip-172-16-1-100">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.1.100</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#">
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#master"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#workers"/>
+    <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Term"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-workers">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-workers-ip-172-16-1-100"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-master-ip-172-16-1-1">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.1.1</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Term">
+    <time:hasDurationDescription rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#TermDuration"/>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#Interval"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-master">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/07cb1d6d-f96f-43c2-8650-3ab34dcc67e9#Link0-master-ip-172-16-1-1"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+</rdf:RDF>
