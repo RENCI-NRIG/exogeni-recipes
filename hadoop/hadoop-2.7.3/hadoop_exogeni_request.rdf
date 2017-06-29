@@ -1,0 +1,498 @@
+<rdf:RDF
+    xmlns:ec2="http://geni-orca.renci.org/owl/ec2.owl#"
+    xmlns:kansei="http://geni-orca.renci.org/owl/kansei.owl#"
+    xmlns:app-color="http://geni-orca.renci.org/owl/app-color.owl#"
+    xmlns:geni="http://geni-orca.renci.org/owl/geni.owl#"
+    xmlns:domain="http://geni-orca.renci.org/owl/domain.owl#"
+    xmlns:eucalyptus="http://geni-orca.renci.org/owl/eucalyptus.owl#"
+    xmlns:collections="http://geni-orca.renci.org/owl/collections.owl#"
+    xmlns:openflow="http://geni-orca.renci.org/owl/openflow.owl#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:exogeni="http://geni-orca.renci.org/owl/exogeni.owl#"
+    xmlns:request="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#"
+    xmlns:layer="http://geni-orca.renci.org/owl/layer.owl#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:request-schema="http://geni-orca.renci.org/owl/request.owl#"
+    xmlns:ip4="http://geni-orca.renci.org/owl/ip4.owl#"
+    xmlns:planetlab="http://geni-orca.renci.org/owl/planetlab.owl#"
+    xmlns:ethernet="http://geni-orca.renci.org/owl/ethernet.owl#"
+    xmlns:dtn="http://geni-orca.renci.org/owl/dtn.owl#"
+    xmlns:time="http://www.w3.org/2006/time#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:modify-schema="http://geni-orca.renci.org/owl/modify.owl#"
+    xmlns:compute="http://geni-orca.renci.org/owl/compute.owl#"
+    xmlns:topology="http://geni-orca.renci.org/owl/topology.owl#"
+    xmlns:orca="http://geni-orca.renci.org/owl/orca.rdf#" > 
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#TermDuration">
+    <time:days rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1</time:days>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#DurationDescription"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers-ip-172-16-100-2"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers-ip-172-16-100-2">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.2</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager-ip-172-16-100-4">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.4</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
+    <topology:hasGUID>ead50214-6f76-41b4-a4a2-6dbc52fdf727</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+yum -y update
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+ &lt;property&gt;
+   &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+   &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+#end
+EOF
+
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+nmcli connection modify eth0 connection.zone trusted
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  $HADOOP_PREFIX/bin/hdfs namenode -format
+  $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+7.3+v1.0.3"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager-ip-172-16-100-4"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
+    <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
+    <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
+    <topology:hasGUID>c771e736-81a0-4966-869d-817833cd8fac</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#BroadcastConnection"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
+    <topology:hasGUID>ec5fac4f-2c45-4df0-839a-5f3e83ea5d76</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+yum -y update
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+ &lt;property&gt;
+   &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+   &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+#end
+EOF
+
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+nmcli connection modify eth0 connection.zone trusted
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  $HADOOP_PREFIX/bin/hdfs namenode -format
+  $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+7.3+v1.0.3"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <layer:numCE rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</layer:numCE>
+    <request-schema:groupName>Workers</request-schema:groupName>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ServerCloud"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
+    <topology:hasGUID>a1063815-e4f9-47cb-aab8-53f20d45396e</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+yum -y update
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+ &lt;property&gt;
+   &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+   &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+#end
+EOF
+
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+nmcli connection modify eth0 connection.zone trusted
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  $HADOOP_PREFIX/bin/hdfs namenode -format
+  $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+7.3+v1.0.3"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term">
+    <time:hasDurationDescription rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#TermDuration"/>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#Interval"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+7.3+v1.0.3">
+    <topology:hasName rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Centos 7.3 v1.0.3</topology:hasName>
+    <topology:hasURL>http://geni-images.renci.org/images/standard/centos/centos7.3-v1.0.3/centos7.3-v1.0.3.xml</topology:hasURL>
+    <topology:hasGUID>c3e80c29d021c800dcc122070e5ecbffc417c657</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#DiskImage"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode-ip-172-16-100-1"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
+    <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode-ip-172-16-100-1">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.1</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+</rdf:RDF>
