@@ -109,11 +109,10 @@ cat > $SLAVES_FILE << EOF
 #end
 EOF
 
-echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
-
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-nmcli connection modify eth0 connection.zone trusted
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+nmcli connection modify eth0 connection.zone internal
 
 # Start Hadoop
 ############################################################
@@ -142,6 +141,7 @@ ZOOKEEPER_VERSION=zookeeper-3.4.6
 
 # setup /etc/hosts
 ############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() >> /etc/hosts
 echo $NameNode.IP("VLAN0") zoo1 >> /etc/hosts
 echo $ResourceManager.IP("VLAN0") zoo2 >> /etc/hosts
 echo $AccumuloMaster.IP("VLAN0") zoo3 >> /etc/hosts
@@ -153,7 +153,7 @@ wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org
 tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
 rm /opt/${ZOOKEEPER_VERSION}.tgz*
 
-ZOOKEEPER_HOME /opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
 
 cat > /etc/profile.d/zookeeper.sh << EOF
 export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
@@ -213,6 +213,7 @@ fi
 ############################################################
 if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
 then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
   ${ZOOKEEPER_HOME}/bin/zkServer.sh start
 fi
 

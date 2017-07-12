@@ -161,11 +161,10 @@ cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #end
 EOF
 
-echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
-
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-nmcli connection modify eth0 connection.zone trusted
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+nmcli connection modify eth0 connection.zone internal
 
 # Start Hadoop
 ############################################################
@@ -194,6 +193,7 @@ ZOOKEEPER_VERSION=zookeeper-3.4.6
 
 # setup /etc/hosts
 ############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
 echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
 echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
@@ -205,7 +205,7 @@ wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org
 tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
 rm /opt/${ZOOKEEPER_VERSION}.tgz*
 
-ZOOKEEPER_HOME /opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
 
 cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
 export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
@@ -265,6 +265,7 @@ fi
 ############################################################
 if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
 then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
   ${ZOOKEEPER_HOME}/bin/zkServer.sh start
 fi
 
@@ -285,10 +286,10 @@ fi
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
     <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
     <topology:hasGUID>c771e736-81a0-4966-869d-817833cd8fac</topology:hasGUID>
@@ -408,11 +409,10 @@ cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #end
 EOF
 
-echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
-
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-nmcli connection modify eth0 connection.zone trusted
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+nmcli connection modify eth0 connection.zone internal
 
 # Start Hadoop
 ############################################################
@@ -441,6 +441,7 @@ ZOOKEEPER_VERSION=zookeeper-3.4.6
 
 # setup /etc/hosts
 ############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
 echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
 echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
@@ -452,7 +453,7 @@ wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org
 tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
 rm /opt/${ZOOKEEPER_VERSION}.tgz*
 
-ZOOKEEPER_HOME /opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
 
 cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
 export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
@@ -512,6 +513,7 @@ fi
 ############################################################
 if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
 then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
   ${ZOOKEEPER_HOME}/bin/zkServer.sh start
 fi
 
@@ -643,11 +645,10 @@ cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #end
 EOF
 
-echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
-
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-nmcli connection modify eth0 connection.zone trusted
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+nmcli connection modify eth0 connection.zone internal
 
 # Start Hadoop
 ############################################################
@@ -676,6 +677,7 @@ ZOOKEEPER_VERSION=zookeeper-3.4.6
 
 # setup /etc/hosts
 ############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
 echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
 echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
@@ -687,7 +689,7 @@ wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org
 tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
 rm /opt/${ZOOKEEPER_VERSION}.tgz*
 
-ZOOKEEPER_HOME /opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
 
 cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
 export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
@@ -747,6 +749,7 @@ fi
 ############################################################
 if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
 then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
   ${ZOOKEEPER_HOME}/bin/zkServer.sh start
 fi
 
@@ -876,11 +879,10 @@ cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #end
 EOF
 
-echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
-
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-nmcli connection modify eth0 connection.zone trusted
+echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+nmcli connection modify eth0 connection.zone internal
 
 # Start Hadoop
 ############################################################
@@ -909,6 +911,7 @@ ZOOKEEPER_VERSION=zookeeper-3.4.6
 
 # setup /etc/hosts
 ############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
 echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
 echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
@@ -920,7 +923,7 @@ wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org
 tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
 rm /opt/${ZOOKEEPER_VERSION}.tgz*
 
-ZOOKEEPER_HOME /opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
 
 cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
 export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
@@ -980,6 +983,7 @@ fi
 ############################################################
 if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
 then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
   ${ZOOKEEPER_HOME}/bin/zkServer.sh start
 fi
 
@@ -1010,10 +1014,10 @@ fi
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
   </rdf:Description>
