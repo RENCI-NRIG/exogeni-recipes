@@ -19,6 +19,7 @@ echo `echo $self.Name() | sed 's/\//-/g'` > /etc/hostname
 yum makecache fast
 yum -y update
 yum install -y wget java-1.8.0-openjdk-devel
+#apt install -y openjdk-9-jdk
 
 export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
 
@@ -44,6 +45,83 @@ export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
 export PATH=\$HADOOP_PREFIX/bin:\$PATH
 EOF
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables -F; iptables -X; iptables -Z
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -d 127.0.0.0/8 -j REJECT
+#Block some common attacks:
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+#Accept all established inbound connections:
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+#Allow SSH connections:
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Allow internal cluster connections
+iptables -I INPUT -i eth1 -p tcp -j ACCEPT
+
+#Node specific iptables config
+if [[ $self.Name() == NameNode ]]
+then
+  # connections to namenode allowed from outside the cluster
+  iptables -A INPUT -p tcp --dport 50070 -j ACCEPT
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # connections to resource manager from outside the cluster
+  iptables -A INPUT -p tcp --dport 8088 -j ACCEPT
+elif [[ $self.Name() == Workers* ]]
+then
+  # TODO ?
+  : #no-op
+fi
+
+# complete the iptables config
+#set the default policies:
+iptables -P INPUT DROP
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+# Create hadoop user
+############################################################
+useradd -U hadoop
+mkdir /home/hadoop/.ssh
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == NameNode ]]
+then
+  ssh-keygen -t rsa -N "" -f /home/hadoop/.ssh/id_rsa
+  cat /home/hadoop/.ssh/id_rsa.pub >> /home/hadoop/.ssh/authorized_keys
+
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &
+else
+  # Need to download SSH public key from master
+  until wget -O /home/hadoop/.ssh/id_rsa.pub "http://namenode:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /home/hadoop/.ssh/id_rsa.pub >> /home/hadoop/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+############################################################
+ssh-keyscan namenode >> /home/hadoop/.ssh/known_hosts
+ssh-keyscan resourcemanager >> /home/hadoop/.ssh/known_hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /home/hadoop/.ssh/known_hosts` 
+#end
+
 
 # Configure Hadoop
 ############################################################
@@ -108,7 +186,7 @@ echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
 
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-nmcli connection modify eth0 connection.zone trusted
+#nmcli connection modify eth0 connection.zone trusted
 
 # Start Hadoop
 ############################################################
@@ -116,14 +194,14 @@ echo "hadoop_exogeni_postboot: starting Hadoop"
 
 if [[ $self.Name() == NameNode ]]
 then
-  $HADOOP_PREFIX/bin/hdfs namenode -format
-  $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+  sudo -E -u hadoop $HADOOP_PREFIX/bin/hdfs namenode -format
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
 elif [[ $self.Name() == ResourceManager ]]
 then
-  $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
 elif [[ $self.Name() == Workers* ]]
 then
-  $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-  $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
 fi
 
