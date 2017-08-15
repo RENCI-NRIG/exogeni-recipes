@@ -118,11 +118,15 @@ else
 fi
 
 # Add host RSA keys to SSH known hosts files
-ssh-keyscan namenode >> /home/hadoop/.ssh/known_hosts
-ssh-keyscan resourcemanager >> /home/hadoop/.ssh/known_hosts
+# Need to wait until these succeed
+until ssh-keyscan namenode >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan resourcemanager >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /home/hadoop/.ssh/known_hosts
+  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /home/hadoop/.ssh/known_hosts
+  do
+    sleep 2
+  done
 #end
 
 # Fix permissions in .ssh
