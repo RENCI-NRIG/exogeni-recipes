@@ -82,6 +82,10 @@ elif [[ $self.Name() == Workers* ]]
 then
   # TODO ?
   : #no-op
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to accumulo monitor from outside the cluster
+  iptables -A INPUT -p tcp --dport 9995 -j ACCEPT
 fi
 
 # complete the iptables config
@@ -214,12 +218,12 @@ EOF
 cat > $SLAVES_FILE << EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
 #end
 EOF
 
 # make sure the hadoop user owns /opt/hadoop
-chown -R hadoop:hadoop /opt/${HADOOP_VERSION}
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
 
 # Centos 7 only
 ############################################################
@@ -346,5 +350,81 @@ fi
 # Accumulo
 # Assumes cluster has already been configured for Hadoop and Zookeeper
 ############################################################
+
+ACCUMULO_VERSION=1.8.1
+
+# Complete SSH setup for Accumulo Master
+############################################################
+until ssh-keyscan accumulomaster >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  ssh-keyscan `neuca-get-public-ip` >> /home/hadoop/.ssh/known_hosts
+  ssh-keyscan 0.0.0.0 >> /home/hadoop/.ssh/known_hosts
+fi
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+fi
+
+# Install Accumulo
+############################################################
+mkdir -p /opt/accumulo-${ACCUMULO_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/accumulo/${ACCUMULO_VERSION}/accumulo-${ACCUMULO_VERSION}-bin.tar.gz > /opt/accumulo-${ACCUMULO_VERSION}.tgz
+tar -C /opt/accumulo-${ACCUMULO_VERSION} --extract --file /opt/accumulo-${ACCUMULO_VERSION}.tgz --strip-components=1
+rm -f /opt/accumulo-${ACCUMULO_VERSION}.tgz*
+
+export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
+
+cat > /etc/profile.d/accumulo.sh << EOF
+export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# make sure the hadoop user owns /opt/accumulo
+chown -R hadoop:hadoop ${ACCUMULO_HOME}
+
+# Configure Accumulo
+############################################################
+sudo -E -u hadoop $ACCUMULO_HOME/bin/bootstrap_config.sh --size 512MB --jvm --version 2
+
+# tell accumulo where to run each service
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/monitor
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/gc
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/tracers # not sure where these should be run ?
+
+cat > ${ACCUMULO_HOME}/conf/slaves << EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# Need monitor to bind to public port
+#sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
+
+# setup zookeeper hosts
+sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# disable SASL (?) Kerberos ??
+sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+
+# Start Accumulo
+############################################################
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # wait until we have the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # init and run accumulo
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password NOT_USED --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-all.sh
+fi
 
 
