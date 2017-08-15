@@ -22,7 +22,7 @@ echo `echo $self.Name() | sed 's/\//-/g'` > /etc/hostname
 # Install Java
 ############################################################
 yum makecache fast
-yum -y update
+#yum -y update # disabled only during testing. should be enabled in production
 yum install -y wget java-1.8.0-openjdk-devel
 
 export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
@@ -92,7 +92,7 @@ iptables -P FORWARD DROP
 #Save the iptables configuration with the following command:
 service iptables save
 
-# Create hadoop user
+# Create hadoop user and setup SSH
 ############################################################
 useradd -U hadoop
 mkdir /home/hadoop/.ssh
@@ -118,13 +118,30 @@ else
 fi
 
 # Add host RSA keys to SSH known hosts files
-############################################################
 ssh-keyscan namenode >> /home/hadoop/.ssh/known_hosts
 ssh-keyscan resourcemanager >> /home/hadoop/.ssh/known_hosts
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /home/hadoop/.ssh/known_hosts`
+ ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /home/hadoop/.ssh/known_hosts
 #end
+
+# Fix permissions in .ssh
+chown -R hadoop:hadoop /home/hadoop/.ssh
+chmod -R g-w /home/hadoop/.ssh
+chmod -R o-w /home/hadoop/.ssh
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  #set ( $sizeWorkerGroup = $Workers.size() - 1 )
+  #foreach ( $j in [0..$sizeWorkerGroup] )
+    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    do
+      sleep 2
+    done
+  #end
+fi
 
 # Configure Hadoop
 ############################################################
@@ -171,10 +188,22 @@ cat > $YARN_SITE_FILE << EOF
 <?xml version="1.0"?>
 <configuration>
 <!-- Site specific YARN configuration properties -->
- <property>
-   <name>yarn.resourcemanager.hostname</name>
-   <value>$ResourceManager.Name()</value>
- </property>
+  <property>
+    <name>yarn.resourcemanager.hostname</name>
+    <value>$ResourceManager.Name()</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.bind-host</name>
+    <value>0.0.0.0</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.aux-services.mapreduce_shuffle.class</name>
+    <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+  </property>
 </configuration>
 EOF
 
@@ -185,11 +214,14 @@ cat > $SLAVES_FILE << EOF
 #end
 EOF
 
+# make sure the hadoop user owns /opt/hadoop
+chown -R hadoop:hadoop /opt/${HADOOP_VERSION}
+
 # Centos 7 only
 ############################################################
 # Why is the firewall not cooperating??
 # This should probably work, but it is not currently
-echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+#echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
 #nmcli connection modify eth0 connection.zone internal
 
 # Start Hadoop
@@ -202,9 +234,19 @@ then
   sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
 elif [[ $self.Name() == ResourceManager ]]
 then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
   sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
 elif [[ $self.Name() == Workers* ]]
 then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
   sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
   sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
 fi
