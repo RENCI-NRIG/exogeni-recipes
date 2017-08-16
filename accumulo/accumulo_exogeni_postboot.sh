@@ -255,8 +255,8 @@ then
   do
     sleep 2
   done
-  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 fi
 
 
@@ -386,8 +386,13 @@ EOF
 chown -R hadoop:hadoop ${ACCUMULO_HOME}
 
 # Configure Accumulo
+# This assumes default accumulo password of 'secret'
 ############################################################
-sudo -E -u hadoop $ACCUMULO_HOME/bin/bootstrap_config.sh --size 512MB --jvm --version 2
+
+# accumulo bootstrap_config.sh tries to create a temp file in CWD.
+# 512MB bug https://issues.apache.org/jira/browse/ACCUMULO-4585
+cd ${ACCUMULO_HOME}
+sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --size 1GB --jvm --version 2
 
 # tell accumulo where to run each service
 sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
@@ -403,16 +408,21 @@ cat > ${ACCUMULO_HOME}/conf/slaves << EOF
 EOF
 
 # Need monitor to bind to public port
-#sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
+sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
 
 # setup zookeeper hosts
 sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # disable SASL (?) Kerberos ??
-sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+# this is disabled correctly by bootstrap_config.sh
+#sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
+# if you change the accumulo password in the 'init' stage below, you will need to change it here too
+#sed -i '/trace.token.property.password/!b;n;s/secret/NEW_PASSWORD/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # Start Accumulo
+# Start each host separately, as they may be at different 
+# stages of configuration
 ############################################################
 if [[ $self.Name() == AccumuloMaster ]]
 then
@@ -423,8 +433,25 @@ then
   done
 
   # init and run accumulo
-  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password NOT_USED --user root
-  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-all.sh
+  # This assumes default accumulo password of 'secret'
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # need to wait for 'init' of accumulo to finish
+  until sudo -E -u hadoop ${HADOOP_PREFIX}/bin/hdfs dfs -ls /accumulo/instance_id > /dev/null 2>&1
+  do
+    sleep 1
+  done
+
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
 
