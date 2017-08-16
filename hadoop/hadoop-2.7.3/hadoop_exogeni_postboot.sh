@@ -211,12 +211,12 @@ EOF
 cat > $SLAVES_FILE << EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
 #end
 EOF
 
 # make sure the hadoop user owns /opt/hadoop
-chown -R hadoop:hadoop /opt/${HADOOP_VERSION}
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
 
 # Centos 7 only
 ############################################################
@@ -248,6 +248,6 @@ then
   do
     sleep 2
   done
-  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 fi

@@ -264,12 +264,12 @@ EOF
 cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
 #end
 EOF
 
 # make sure the hadoop user owns /opt/hadoop
-chown -R hadoop:hadoop /opt/${HADOOP_VERSION}
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
 
 # Centos 7 only
 ############################################################
@@ -301,8 +301,8 @@ then
   do
     sleep 2
   done
-  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 fi</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
@@ -314,9 +314,9 @@ fi</request-schema:postBootScript>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
     <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
     <topology:hasGUID>c771e736-81a0-4966-869d-817833cd8fac</topology:hasGUID>
@@ -538,12 +538,12 @@ EOF
 cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
 #end
 EOF
 
 # make sure the hadoop user owns /opt/hadoop
-chown -R hadoop:hadoop /opt/${HADOOP_VERSION}
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
 
 # Centos 7 only
 ############################################################
@@ -575,8 +575,8 @@ then
   do
     sleep 2
   done
-  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 fi</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
@@ -801,12 +801,12 @@ EOF
 cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'` 
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
 #end
 EOF
 
 # make sure the hadoop user owns /opt/hadoop
-chown -R hadoop:hadoop /opt/${HADOOP_VERSION}
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
 
 # Centos 7 only
 ############################################################
@@ -838,8 +838,8 @@ then
   do
     sleep 2
   done
-  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemons.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemons.sh --config $HADOOP_CONF_DIR start nodemanager
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 fi</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
