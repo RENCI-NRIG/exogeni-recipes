@@ -1,0 +1,2506 @@
+<rdf:RDF
+    xmlns:ec2="http://geni-orca.renci.org/owl/ec2.owl#"
+    xmlns:kansei="http://geni-orca.renci.org/owl/kansei.owl#"
+    xmlns:app-color="http://geni-orca.renci.org/owl/app-color.owl#"
+    xmlns:geni="http://geni-orca.renci.org/owl/geni.owl#"
+    xmlns:domain="http://geni-orca.renci.org/owl/domain.owl#"
+    xmlns:eucalyptus="http://geni-orca.renci.org/owl/eucalyptus.owl#"
+    xmlns:collections="http://geni-orca.renci.org/owl/collections.owl#"
+    xmlns:openflow="http://geni-orca.renci.org/owl/openflow.owl#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:exogeni="http://geni-orca.renci.org/owl/exogeni.owl#"
+    xmlns:request="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#"
+    xmlns:layer="http://geni-orca.renci.org/owl/layer.owl#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:request-schema="http://geni-orca.renci.org/owl/request.owl#"
+    xmlns:ip4="http://geni-orca.renci.org/owl/ip4.owl#"
+    xmlns:planetlab="http://geni-orca.renci.org/owl/planetlab.owl#"
+    xmlns:ethernet="http://geni-orca.renci.org/owl/ethernet.owl#"
+    xmlns:dtn="http://geni-orca.renci.org/owl/dtn.owl#"
+    xmlns:time="http://www.w3.org/2006/time#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:modify-schema="http://geni-orca.renci.org/owl/modify.owl#"
+    xmlns:compute="http://geni-orca.renci.org/owl/compute.owl#"
+    xmlns:topology="http://geni-orca.renci.org/owl/topology.owl#"
+    xmlns:orca="http://geni-orca.renci.org/owl/orca.rdf#" > 
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#TermDuration">
+    <time:days rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1</time:days>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#DurationDescription"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers-ip-172-16-100-4"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager-ip-172-16-100-2">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.2</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0">
+    <topology:hasName rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Centos 6.9 v1.0.0</topology:hasName>
+    <topology:hasURL>http://geni-images.renci.org/images/standard/centos/centos6.9-v1.0.0/centos6.9-v1.0.0.xml</topology:hasURL>
+    <topology:hasGUID>7cc4cddfd0ebfe7f02e006771c4cf2daddbd87e7</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#DiskImage"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers-ip-172-16-100-4">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.4</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
+    <topology:hasGUID>ead50214-6f76-41b4-a4a2-6dbc52fdf727</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+# Initial sections copied from Accumulo recipe:
+# https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/accumulo/accumulo_exogeni_postboot.txt
+
+############################################################
+# Hadoop
+############################################################
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+#yum -y update # disabled only during testing. should be enabled in production
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables -F; iptables -X; iptables -Z
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -d 127.0.0.0/8 -j REJECT
+#Block some common attacks:
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+#Accept all established inbound connections:
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+#Allow SSH connections:
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Allow internal cluster connections
+iptables -I INPUT -i eth1 -p tcp -j ACCEPT
+
+#Node specific iptables config
+if [[ $self.Name() == NameNode ]]
+then
+  # connections to namenode allowed from outside the cluster
+  iptables -A INPUT -p tcp --dport 50070 -j ACCEPT
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # connections to resource manager from outside the cluster
+  iptables -A INPUT -p tcp --dport 8088 -j ACCEPT
+elif [[ $self.Name() == Workers* ]]
+then
+  # TODO ?
+  : #no-op
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to accumulo monitor from outside the cluster
+  iptables -A INPUT -p tcp --dport 9995 -j ACCEPT
+fi
+
+# complete the iptables config
+#set the default policies:
+iptables -P INPUT DROP
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+# Create hadoop user and setup SSH
+############################################################
+useradd -U hadoop
+mkdir /home/hadoop/.ssh
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == NameNode ]]
+then
+  ssh-keygen -t rsa -N "" -f /home/hadoop/.ssh/id_rsa
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  # Need to download SSH public key from master
+  until wget -O /home/hadoop/.ssh/id_rsa.pub "http://namenode:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  do
+    sleep 2
+  done
+#end
+
+# Fix permissions in .ssh
+chown -R hadoop:hadoop /home/hadoop/.ssh
+chmod -R g-w /home/hadoop/.ssh
+chmod -R o-w /home/hadoop/.ssh
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  #set ( $sizeWorkerGroup = $Workers.size() - 1 )
+  #foreach ( $j in [0..$sizeWorkerGroup] )
+    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    do
+      sleep 2
+    done
+  #end
+fi
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+    &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.bind-host&lt;/name&gt;
+    &lt;value&gt;0.0.0.0&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+    &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services.mapreduce_shuffle.class&lt;/name&gt;
+    &lt;value&gt;org.apache.hadoop.mapred.ShuffleHandler&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# make sure the hadoop user owns /opt/hadoop
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
+
+# Centos 7 only
+############################################################
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+#echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+#nmcli connection modify eth0 connection.zone internal
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  sudo -E -u hadoop $HADOOP_PREFIX/bin/hdfs namenode -format
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+
+
+############################################################
+# ZooKeeper
+# Assumes cluster has already been configured for Hadoop
+############################################################
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+
+# setup /etc/hosts
+############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
+echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+# Install ZooKeeper
+############################################################
+mkdir -p /opt/${ZOOKEEPER_VERSION}
+wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org/repos/dist/release/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+EOF
+
+# Configure ZooKeeper
+############################################################
+ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+mkdir -p ${ZOOKEEPER_DATADIR}
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == NameNode ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == ResourceManager ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
+then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Accumulo
+# Assumes cluster has already been configured for Hadoop and Zookeeper
+############################################################
+
+ACCUMULO_VERSION=1.8.1
+
+# Complete SSH setup for Accumulo Master
+############################################################
+until ssh-keyscan accumulomaster &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  ssh-keyscan `neuca-get-public-ip` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  ssh-keyscan 0.0.0.0 &gt;&gt; /home/hadoop/.ssh/known_hosts
+fi
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+fi
+
+# Install Accumulo
+############################################################
+mkdir -p /opt/accumulo-${ACCUMULO_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/accumulo/${ACCUMULO_VERSION}/accumulo-${ACCUMULO_VERSION}-bin.tar.gz &gt; /opt/accumulo-${ACCUMULO_VERSION}.tgz
+tar -C /opt/accumulo-${ACCUMULO_VERSION} --extract --file /opt/accumulo-${ACCUMULO_VERSION}.tgz --strip-components=1
+rm -f /opt/accumulo-${ACCUMULO_VERSION}.tgz*
+
+export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
+
+cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
+export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
+export PATH=\$ACCUMULO_HOME/bin:\$PATH
+EOF
+
+# make sure the hadoop user owns /opt/accumulo
+chown -R hadoop:hadoop ${ACCUMULO_HOME}
+
+# Configure Accumulo
+# This assumes default accumulo password of 'secret'
+############################################################
+
+# accumulo bootstrap_config.sh tries to create a temp file in CWD.
+# 512MB bug https://issues.apache.org/jira/browse/ACCUMULO-4585
+cd ${ACCUMULO_HOME}
+sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --size 1GB --jvm --version 2
+
+# tell accumulo where to run each service
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/monitor
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/gc
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/tracers # not sure where these should be run ?
+
+cat &gt; ${ACCUMULO_HOME}/conf/slaves &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# Need monitor to bind to public port
+sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
+
+# setup zookeeper hosts
+sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# disable SASL (?) Kerberos ??
+# this is disabled correctly by bootstrap_config.sh
+#sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# if you change the accumulo password in the 'init' stage below, you will need to change it here too
+#sed -i '/trace.token.property.password/!b;n;s/secret/NEW_PASSWORD/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# Start Accumulo
+# Start each host separately, as they may be at different 
+# stages of configuration
+############################################################
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # wait until we have the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # init and run accumulo
+  # This assumes default accumulo password of 'secret'
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # need to wait for 'init' of accumulo to finish
+  until sudo -E -u hadoop ${HADOOP_PREFIX}/bin/hdfs dfs -ls /accumulo/instance_id &gt; /dev/null 2&gt;&amp;1
+  do
+    sleep 1
+  done
+
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+fi
+
+############################################################
+# Apache Rya
+#
+# Some steps from the Rya Vagrantfile:
+# https://github.com/apache/incubator-rya/blob/master/extras/vagrantExample/src/main/vagrant/Vagrantfile
+############################################################
+
+RYA_VERSION=3.2.10
+
+### wait for a directory to exist or timeout
+function waitForDir {
+    waitfordir="$1"
+    timeout=120
+    until [[ -d  "$waitfordir" ]]  
+    do
+        sleep 5
+        let timeout-=5
+        if [[ $timeout -le "0" ]]; then
+            echo "Timeout waiting for war to deploy, $waitfordir still does not exist."; 
+            exit
+        fi
+    done
+}
+
+# Install Apache Maven
+APACHE_MAVEN_VERSION=3.3.9
+APACHE_MAVEN=apache-maven-${APACHE_MAVEN_VERSION}
+APACHE_MAVEN_HOME=/opt/${APACHE_MAVEN}
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p ${APACHE_MAVEN_HOME}
+  curl --location --insecure --show-error https://archive.apache.org/dist/maven/maven-3/${APACHE_MAVEN_VERSION}/binaries/${APACHE_MAVEN}-bin.tar.gz &gt; /opt/${APACHE_MAVEN}.tgz
+  tar -C ${APACHE_MAVEN_HOME}  --extract --file /opt/${APACHE_MAVEN}.tgz --strip-components=1
+  rm -f /opt/${APACHE_MAVEN}.tgz*
+
+  
+  cat &gt; /etc/profile.d/apache-maven.sh &lt;&lt; EOF
+export M2_HOME=${APACHE_MAVEN_HOME}
+export PATH=\${M2_HOME}/bin:\${PATH}
+EOF
+
+fi
+
+# Install Tomcat
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  yum -y install tomcat
+  service tomcat start
+fi
+
+# Install OpenRDF Sesame
+SESAME_VERSION=2.7.6
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p /usr/share/tomcat/.aduna
+  chown -R tomcat:tomcat /usr/share/tomcat
+  ln --force -s /usr/share/tomcat/.aduna/openrdf-sesame/logs /var/log/tomcat/openrdf-sesame
+
+  SESAME_WAR=/var/lib/tomcat/webapps/openrdf-sesame.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-server/${SESAME_VERSION}/sesame-http-server-${SESAME_VERSION}.war &gt; ${SESAME_WAR}
+
+  WORKBENCH_WAR=/var/lib/tomcat/webapps/openrdf-workbench.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-workbench/${SESAME_VERSION}/sesame-http-workbench-${SESAME_VERSION}.war &gt; ${WORKBENCH_WAR}
+
+fi
+
+# Download, compile, and 'install' Rya
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  
+  mkdir -p /opt/rya-source-${RYA_VERSION}
+  curl --location --insecure --show-error https://github.com/apache/incubator-rya/archive/rel/rya-incubating-${RYA_VERSION}.tar.gz &gt; /opt/rya-source-${RYA_VERSION}.tgz
+  tar -C /opt/rya-source-${RYA_VERSION} --extract --file /opt/rya-source-${RYA_VERSION}.tgz --strip-components=1
+  rm -f /opt/rya-source-${RYA_VERSION}.tgz*
+
+  cd /opt/rya-source-${RYA_VERSION}
+
+  # skip tests when building the release
+  ${APACHE_MAVEN_HOME}/bin/mvn clean install -DskipTests
+
+  cp /opt/rya-source-${RYA_VERSION}/web/web.rya/target/web.rya.war /var/lib/tomcat/webapps/web.rya.war
+fi
+
+# wait for tomcat to deploy wars
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  waitForDir /var/lib/tomcat/webapps/openrdf-workbench/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/openrdf-sesame/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/
+
+  # These are older libs that breaks tomcat 7
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/servlet-api-2.5*.jar
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/jsp-api-2.1.jar
+fi
+
+# Configure Rya
+# Accumulo settings must match settings from above Accumulo section
+if [[ $self.Name() == AccumuloMaster ]]
+then
+
+cat &gt; /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/environment.properties &lt;&lt;EOF
+# Accumulo instance name
+instance.name=exogeni
+# Accumulo Zookeepers
+instance.zk=zoo1:2181,zoo2:2181,zoo3:2181
+# Accumulo username
+instance.username=root
+# Accumulo password
+instance.password=secret
+
+# Rya Table Prefix
+rya.tableprefix=triplestore_
+# To display the query plan
+rya.displayqueryplan=true
+EOF
+
+fi
+
+# Open tomcat port in iptables
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to Rya/tomcat from outside the cluster
+  iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+  service iptables save
+fi
+
+# Restart Tomcat (?)
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  service tomcat restart
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager-ip-172-16-100-2"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
+    <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
+    <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
+    <topology:hasGUID>c771e736-81a0-4966-869d-817833cd8fac</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#BroadcastConnection"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
+    <topology:hasGUID>ec5fac4f-2c45-4df0-839a-5f3e83ea5d76</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+# Initial sections copied from Accumulo recipe:
+# https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/accumulo/accumulo_exogeni_postboot.txt
+
+############################################################
+# Hadoop
+############################################################
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+#yum -y update # disabled only during testing. should be enabled in production
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables -F; iptables -X; iptables -Z
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -d 127.0.0.0/8 -j REJECT
+#Block some common attacks:
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+#Accept all established inbound connections:
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+#Allow SSH connections:
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Allow internal cluster connections
+iptables -I INPUT -i eth1 -p tcp -j ACCEPT
+
+#Node specific iptables config
+if [[ $self.Name() == NameNode ]]
+then
+  # connections to namenode allowed from outside the cluster
+  iptables -A INPUT -p tcp --dport 50070 -j ACCEPT
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # connections to resource manager from outside the cluster
+  iptables -A INPUT -p tcp --dport 8088 -j ACCEPT
+elif [[ $self.Name() == Workers* ]]
+then
+  # TODO ?
+  : #no-op
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to accumulo monitor from outside the cluster
+  iptables -A INPUT -p tcp --dport 9995 -j ACCEPT
+fi
+
+# complete the iptables config
+#set the default policies:
+iptables -P INPUT DROP
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+# Create hadoop user and setup SSH
+############################################################
+useradd -U hadoop
+mkdir /home/hadoop/.ssh
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == NameNode ]]
+then
+  ssh-keygen -t rsa -N "" -f /home/hadoop/.ssh/id_rsa
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  # Need to download SSH public key from master
+  until wget -O /home/hadoop/.ssh/id_rsa.pub "http://namenode:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  do
+    sleep 2
+  done
+#end
+
+# Fix permissions in .ssh
+chown -R hadoop:hadoop /home/hadoop/.ssh
+chmod -R g-w /home/hadoop/.ssh
+chmod -R o-w /home/hadoop/.ssh
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  #set ( $sizeWorkerGroup = $Workers.size() - 1 )
+  #foreach ( $j in [0..$sizeWorkerGroup] )
+    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    do
+      sleep 2
+    done
+  #end
+fi
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+    &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.bind-host&lt;/name&gt;
+    &lt;value&gt;0.0.0.0&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+    &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services.mapreduce_shuffle.class&lt;/name&gt;
+    &lt;value&gt;org.apache.hadoop.mapred.ShuffleHandler&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# make sure the hadoop user owns /opt/hadoop
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
+
+# Centos 7 only
+############################################################
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+#echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+#nmcli connection modify eth0 connection.zone internal
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  sudo -E -u hadoop $HADOOP_PREFIX/bin/hdfs namenode -format
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+
+
+############################################################
+# ZooKeeper
+# Assumes cluster has already been configured for Hadoop
+############################################################
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+
+# setup /etc/hosts
+############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
+echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+# Install ZooKeeper
+############################################################
+mkdir -p /opt/${ZOOKEEPER_VERSION}
+wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org/repos/dist/release/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+EOF
+
+# Configure ZooKeeper
+############################################################
+ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+mkdir -p ${ZOOKEEPER_DATADIR}
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == NameNode ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == ResourceManager ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
+then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Accumulo
+# Assumes cluster has already been configured for Hadoop and Zookeeper
+############################################################
+
+ACCUMULO_VERSION=1.8.1
+
+# Complete SSH setup for Accumulo Master
+############################################################
+until ssh-keyscan accumulomaster &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  ssh-keyscan `neuca-get-public-ip` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  ssh-keyscan 0.0.0.0 &gt;&gt; /home/hadoop/.ssh/known_hosts
+fi
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+fi
+
+# Install Accumulo
+############################################################
+mkdir -p /opt/accumulo-${ACCUMULO_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/accumulo/${ACCUMULO_VERSION}/accumulo-${ACCUMULO_VERSION}-bin.tar.gz &gt; /opt/accumulo-${ACCUMULO_VERSION}.tgz
+tar -C /opt/accumulo-${ACCUMULO_VERSION} --extract --file /opt/accumulo-${ACCUMULO_VERSION}.tgz --strip-components=1
+rm -f /opt/accumulo-${ACCUMULO_VERSION}.tgz*
+
+export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
+
+cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
+export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
+export PATH=\$ACCUMULO_HOME/bin:\$PATH
+EOF
+
+# make sure the hadoop user owns /opt/accumulo
+chown -R hadoop:hadoop ${ACCUMULO_HOME}
+
+# Configure Accumulo
+# This assumes default accumulo password of 'secret'
+############################################################
+
+# accumulo bootstrap_config.sh tries to create a temp file in CWD.
+# 512MB bug https://issues.apache.org/jira/browse/ACCUMULO-4585
+cd ${ACCUMULO_HOME}
+sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --size 1GB --jvm --version 2
+
+# tell accumulo where to run each service
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/monitor
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/gc
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/tracers # not sure where these should be run ?
+
+cat &gt; ${ACCUMULO_HOME}/conf/slaves &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# Need monitor to bind to public port
+sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
+
+# setup zookeeper hosts
+sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# disable SASL (?) Kerberos ??
+# this is disabled correctly by bootstrap_config.sh
+#sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# if you change the accumulo password in the 'init' stage below, you will need to change it here too
+#sed -i '/trace.token.property.password/!b;n;s/secret/NEW_PASSWORD/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# Start Accumulo
+# Start each host separately, as they may be at different 
+# stages of configuration
+############################################################
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # wait until we have the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # init and run accumulo
+  # This assumes default accumulo password of 'secret'
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # need to wait for 'init' of accumulo to finish
+  until sudo -E -u hadoop ${HADOOP_PREFIX}/bin/hdfs dfs -ls /accumulo/instance_id &gt; /dev/null 2&gt;&amp;1
+  do
+    sleep 1
+  done
+
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+fi
+
+############################################################
+# Apache Rya
+#
+# Some steps from the Rya Vagrantfile:
+# https://github.com/apache/incubator-rya/blob/master/extras/vagrantExample/src/main/vagrant/Vagrantfile
+############################################################
+
+RYA_VERSION=3.2.10
+
+### wait for a directory to exist or timeout
+function waitForDir {
+    waitfordir="$1"
+    timeout=120
+    until [[ -d  "$waitfordir" ]]  
+    do
+        sleep 5
+        let timeout-=5
+        if [[ $timeout -le "0" ]]; then
+            echo "Timeout waiting for war to deploy, $waitfordir still does not exist."; 
+            exit
+        fi
+    done
+}
+
+# Install Apache Maven
+APACHE_MAVEN_VERSION=3.3.9
+APACHE_MAVEN=apache-maven-${APACHE_MAVEN_VERSION}
+APACHE_MAVEN_HOME=/opt/${APACHE_MAVEN}
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p ${APACHE_MAVEN_HOME}
+  curl --location --insecure --show-error https://archive.apache.org/dist/maven/maven-3/${APACHE_MAVEN_VERSION}/binaries/${APACHE_MAVEN}-bin.tar.gz &gt; /opt/${APACHE_MAVEN}.tgz
+  tar -C ${APACHE_MAVEN_HOME}  --extract --file /opt/${APACHE_MAVEN}.tgz --strip-components=1
+  rm -f /opt/${APACHE_MAVEN}.tgz*
+
+  
+  cat &gt; /etc/profile.d/apache-maven.sh &lt;&lt; EOF
+export M2_HOME=${APACHE_MAVEN_HOME}
+export PATH=\${M2_HOME}/bin:\${PATH}
+EOF
+
+fi
+
+# Install Tomcat
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  yum -y install tomcat
+  service tomcat start
+fi
+
+# Install OpenRDF Sesame
+SESAME_VERSION=2.7.6
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p /usr/share/tomcat/.aduna
+  chown -R tomcat:tomcat /usr/share/tomcat
+  ln --force -s /usr/share/tomcat/.aduna/openrdf-sesame/logs /var/log/tomcat/openrdf-sesame
+
+  SESAME_WAR=/var/lib/tomcat/webapps/openrdf-sesame.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-server/${SESAME_VERSION}/sesame-http-server-${SESAME_VERSION}.war &gt; ${SESAME_WAR}
+
+  WORKBENCH_WAR=/var/lib/tomcat/webapps/openrdf-workbench.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-workbench/${SESAME_VERSION}/sesame-http-workbench-${SESAME_VERSION}.war &gt; ${WORKBENCH_WAR}
+
+fi
+
+# Download, compile, and 'install' Rya
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  
+  mkdir -p /opt/rya-source-${RYA_VERSION}
+  curl --location --insecure --show-error https://github.com/apache/incubator-rya/archive/rel/rya-incubating-${RYA_VERSION}.tar.gz &gt; /opt/rya-source-${RYA_VERSION}.tgz
+  tar -C /opt/rya-source-${RYA_VERSION} --extract --file /opt/rya-source-${RYA_VERSION}.tgz --strip-components=1
+  rm -f /opt/rya-source-${RYA_VERSION}.tgz*
+
+  cd /opt/rya-source-${RYA_VERSION}
+
+  # skip tests when building the release
+  ${APACHE_MAVEN_HOME}/bin/mvn clean install -DskipTests
+
+  cp /opt/rya-source-${RYA_VERSION}/web/web.rya/target/web.rya.war /var/lib/tomcat/webapps/web.rya.war
+fi
+
+# wait for tomcat to deploy wars
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  waitForDir /var/lib/tomcat/webapps/openrdf-workbench/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/openrdf-sesame/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/
+
+  # These are older libs that breaks tomcat 7
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/servlet-api-2.5*.jar
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/jsp-api-2.1.jar
+fi
+
+# Configure Rya
+# Accumulo settings must match settings from above Accumulo section
+if [[ $self.Name() == AccumuloMaster ]]
+then
+
+cat &gt; /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/environment.properties &lt;&lt;EOF
+# Accumulo instance name
+instance.name=exogeni
+# Accumulo Zookeepers
+instance.zk=zoo1:2181,zoo2:2181,zoo3:2181
+# Accumulo username
+instance.username=root
+# Accumulo password
+instance.password=secret
+
+# Rya Table Prefix
+rya.tableprefix=triplestore_
+# To display the query plan
+rya.displayqueryplan=true
+EOF
+
+fi
+
+# Open tomcat port in iptables
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to Rya/tomcat from outside the cluster
+  iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+  service iptables save
+fi
+
+# Restart Tomcat (?)
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  service tomcat restart
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <layer:numCE rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</layer:numCE>
+    <request-schema:groupName>Workers</request-schema:groupName>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ServerCloud"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
+    <topology:hasGUID>a1063815-e4f9-47cb-aab8-53f20d45396e</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+# Initial sections copied from Accumulo recipe:
+# https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/accumulo/accumulo_exogeni_postboot.txt
+
+############################################################
+# Hadoop
+############################################################
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+#yum -y update # disabled only during testing. should be enabled in production
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables -F; iptables -X; iptables -Z
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -d 127.0.0.0/8 -j REJECT
+#Block some common attacks:
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+#Accept all established inbound connections:
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+#Allow SSH connections:
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Allow internal cluster connections
+iptables -I INPUT -i eth1 -p tcp -j ACCEPT
+
+#Node specific iptables config
+if [[ $self.Name() == NameNode ]]
+then
+  # connections to namenode allowed from outside the cluster
+  iptables -A INPUT -p tcp --dport 50070 -j ACCEPT
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # connections to resource manager from outside the cluster
+  iptables -A INPUT -p tcp --dport 8088 -j ACCEPT
+elif [[ $self.Name() == Workers* ]]
+then
+  # TODO ?
+  : #no-op
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to accumulo monitor from outside the cluster
+  iptables -A INPUT -p tcp --dport 9995 -j ACCEPT
+fi
+
+# complete the iptables config
+#set the default policies:
+iptables -P INPUT DROP
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+# Create hadoop user and setup SSH
+############################################################
+useradd -U hadoop
+mkdir /home/hadoop/.ssh
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == NameNode ]]
+then
+  ssh-keygen -t rsa -N "" -f /home/hadoop/.ssh/id_rsa
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  # Need to download SSH public key from master
+  until wget -O /home/hadoop/.ssh/id_rsa.pub "http://namenode:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  do
+    sleep 2
+  done
+#end
+
+# Fix permissions in .ssh
+chown -R hadoop:hadoop /home/hadoop/.ssh
+chmod -R g-w /home/hadoop/.ssh
+chmod -R o-w /home/hadoop/.ssh
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  #set ( $sizeWorkerGroup = $Workers.size() - 1 )
+  #foreach ( $j in [0..$sizeWorkerGroup] )
+    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    do
+      sleep 2
+    done
+  #end
+fi
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+    &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.bind-host&lt;/name&gt;
+    &lt;value&gt;0.0.0.0&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+    &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services.mapreduce_shuffle.class&lt;/name&gt;
+    &lt;value&gt;org.apache.hadoop.mapred.ShuffleHandler&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# make sure the hadoop user owns /opt/hadoop
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
+
+# Centos 7 only
+############################################################
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+#echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+#nmcli connection modify eth0 connection.zone internal
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  sudo -E -u hadoop $HADOOP_PREFIX/bin/hdfs namenode -format
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+
+
+############################################################
+# ZooKeeper
+# Assumes cluster has already been configured for Hadoop
+############################################################
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+
+# setup /etc/hosts
+############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
+echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+# Install ZooKeeper
+############################################################
+mkdir -p /opt/${ZOOKEEPER_VERSION}
+wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org/repos/dist/release/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+EOF
+
+# Configure ZooKeeper
+############################################################
+ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+mkdir -p ${ZOOKEEPER_DATADIR}
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == NameNode ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == ResourceManager ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
+then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Accumulo
+# Assumes cluster has already been configured for Hadoop and Zookeeper
+############################################################
+
+ACCUMULO_VERSION=1.8.1
+
+# Complete SSH setup for Accumulo Master
+############################################################
+until ssh-keyscan accumulomaster &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  ssh-keyscan `neuca-get-public-ip` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  ssh-keyscan 0.0.0.0 &gt;&gt; /home/hadoop/.ssh/known_hosts
+fi
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+fi
+
+# Install Accumulo
+############################################################
+mkdir -p /opt/accumulo-${ACCUMULO_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/accumulo/${ACCUMULO_VERSION}/accumulo-${ACCUMULO_VERSION}-bin.tar.gz &gt; /opt/accumulo-${ACCUMULO_VERSION}.tgz
+tar -C /opt/accumulo-${ACCUMULO_VERSION} --extract --file /opt/accumulo-${ACCUMULO_VERSION}.tgz --strip-components=1
+rm -f /opt/accumulo-${ACCUMULO_VERSION}.tgz*
+
+export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
+
+cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
+export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
+export PATH=\$ACCUMULO_HOME/bin:\$PATH
+EOF
+
+# make sure the hadoop user owns /opt/accumulo
+chown -R hadoop:hadoop ${ACCUMULO_HOME}
+
+# Configure Accumulo
+# This assumes default accumulo password of 'secret'
+############################################################
+
+# accumulo bootstrap_config.sh tries to create a temp file in CWD.
+# 512MB bug https://issues.apache.org/jira/browse/ACCUMULO-4585
+cd ${ACCUMULO_HOME}
+sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --size 1GB --jvm --version 2
+
+# tell accumulo where to run each service
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/monitor
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/gc
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/tracers # not sure where these should be run ?
+
+cat &gt; ${ACCUMULO_HOME}/conf/slaves &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# Need monitor to bind to public port
+sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
+
+# setup zookeeper hosts
+sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# disable SASL (?) Kerberos ??
+# this is disabled correctly by bootstrap_config.sh
+#sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# if you change the accumulo password in the 'init' stage below, you will need to change it here too
+#sed -i '/trace.token.property.password/!b;n;s/secret/NEW_PASSWORD/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# Start Accumulo
+# Start each host separately, as they may be at different 
+# stages of configuration
+############################################################
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # wait until we have the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # init and run accumulo
+  # This assumes default accumulo password of 'secret'
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # need to wait for 'init' of accumulo to finish
+  until sudo -E -u hadoop ${HADOOP_PREFIX}/bin/hdfs dfs -ls /accumulo/instance_id &gt; /dev/null 2&gt;&amp;1
+  do
+    sleep 1
+  done
+
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+fi
+
+############################################################
+# Apache Rya
+#
+# Some steps from the Rya Vagrantfile:
+# https://github.com/apache/incubator-rya/blob/master/extras/vagrantExample/src/main/vagrant/Vagrantfile
+############################################################
+
+RYA_VERSION=3.2.10
+
+### wait for a directory to exist or timeout
+function waitForDir {
+    waitfordir="$1"
+    timeout=120
+    until [[ -d  "$waitfordir" ]]  
+    do
+        sleep 5
+        let timeout-=5
+        if [[ $timeout -le "0" ]]; then
+            echo "Timeout waiting for war to deploy, $waitfordir still does not exist."; 
+            exit
+        fi
+    done
+}
+
+# Install Apache Maven
+APACHE_MAVEN_VERSION=3.3.9
+APACHE_MAVEN=apache-maven-${APACHE_MAVEN_VERSION}
+APACHE_MAVEN_HOME=/opt/${APACHE_MAVEN}
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p ${APACHE_MAVEN_HOME}
+  curl --location --insecure --show-error https://archive.apache.org/dist/maven/maven-3/${APACHE_MAVEN_VERSION}/binaries/${APACHE_MAVEN}-bin.tar.gz &gt; /opt/${APACHE_MAVEN}.tgz
+  tar -C ${APACHE_MAVEN_HOME}  --extract --file /opt/${APACHE_MAVEN}.tgz --strip-components=1
+  rm -f /opt/${APACHE_MAVEN}.tgz*
+
+  
+  cat &gt; /etc/profile.d/apache-maven.sh &lt;&lt; EOF
+export M2_HOME=${APACHE_MAVEN_HOME}
+export PATH=\${M2_HOME}/bin:\${PATH}
+EOF
+
+fi
+
+# Install Tomcat
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  yum -y install tomcat
+  service tomcat start
+fi
+
+# Install OpenRDF Sesame
+SESAME_VERSION=2.7.6
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p /usr/share/tomcat/.aduna
+  chown -R tomcat:tomcat /usr/share/tomcat
+  ln --force -s /usr/share/tomcat/.aduna/openrdf-sesame/logs /var/log/tomcat/openrdf-sesame
+
+  SESAME_WAR=/var/lib/tomcat/webapps/openrdf-sesame.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-server/${SESAME_VERSION}/sesame-http-server-${SESAME_VERSION}.war &gt; ${SESAME_WAR}
+
+  WORKBENCH_WAR=/var/lib/tomcat/webapps/openrdf-workbench.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-workbench/${SESAME_VERSION}/sesame-http-workbench-${SESAME_VERSION}.war &gt; ${WORKBENCH_WAR}
+
+fi
+
+# Download, compile, and 'install' Rya
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  
+  mkdir -p /opt/rya-source-${RYA_VERSION}
+  curl --location --insecure --show-error https://github.com/apache/incubator-rya/archive/rel/rya-incubating-${RYA_VERSION}.tar.gz &gt; /opt/rya-source-${RYA_VERSION}.tgz
+  tar -C /opt/rya-source-${RYA_VERSION} --extract --file /opt/rya-source-${RYA_VERSION}.tgz --strip-components=1
+  rm -f /opt/rya-source-${RYA_VERSION}.tgz*
+
+  cd /opt/rya-source-${RYA_VERSION}
+
+  # skip tests when building the release
+  ${APACHE_MAVEN_HOME}/bin/mvn clean install -DskipTests
+
+  cp /opt/rya-source-${RYA_VERSION}/web/web.rya/target/web.rya.war /var/lib/tomcat/webapps/web.rya.war
+fi
+
+# wait for tomcat to deploy wars
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  waitForDir /var/lib/tomcat/webapps/openrdf-workbench/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/openrdf-sesame/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/
+
+  # These are older libs that breaks tomcat 7
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/servlet-api-2.5*.jar
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/jsp-api-2.1.jar
+fi
+
+# Configure Rya
+# Accumulo settings must match settings from above Accumulo section
+if [[ $self.Name() == AccumuloMaster ]]
+then
+
+cat &gt; /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/environment.properties &lt;&lt;EOF
+# Accumulo instance name
+instance.name=exogeni
+# Accumulo Zookeepers
+instance.zk=zoo1:2181,zoo2:2181,zoo3:2181
+# Accumulo username
+instance.username=root
+# Accumulo password
+instance.password=secret
+
+# Rya Table Prefix
+rya.tableprefix=triplestore_
+# To display the query plan
+rya.displayqueryplan=true
+EOF
+
+fi
+
+# Open tomcat port in iptables
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to Rya/tomcat from outside the cluster
+  iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+  service iptables save
+fi
+
+# Restart Tomcat (?)
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  service tomcat restart
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
+    <topology:hasGUID>397c96f1-e659-4fb5-b4f9-b190053e9ebd</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+# Initial sections copied from Accumulo recipe:
+# https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/accumulo/accumulo_exogeni_postboot.txt
+
+############################################################
+# Hadoop
+############################################################
+
+HADOOP_VERSION=hadoop-2.7.3
+
+# setup /etc/hosts
+############################################################
+echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+#end
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+#yum -y update # disabled only during testing. should be enabled in production
+yum install -y wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+# Install Hadoop
+############################################################
+mkdir -p /opt/${HADOOP_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
+tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
+rm -f /opt/${HADOOP_VERSION}.tgz*
+
+export HADOOP_PREFIX=/opt/${HADOOP_VERSION}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+
+cat &gt; /etc/profile.d/hadoop.sh &lt;&lt; EOF
+export HADOOP_PREFIX=${HADOOP_PREFIX}
+export HADOOP_YARN_HOME=${HADOOP_PREFIX}
+export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
+export PATH=\$HADOOP_PREFIX/bin:\$PATH
+EOF
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables -F; iptables -X; iptables -Z
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -d 127.0.0.0/8 -j REJECT
+#Block some common attacks:
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+#Accept all established inbound connections:
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+#Allow SSH connections:
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Allow internal cluster connections
+iptables -I INPUT -i eth1 -p tcp -j ACCEPT
+
+#Node specific iptables config
+if [[ $self.Name() == NameNode ]]
+then
+  # connections to namenode allowed from outside the cluster
+  iptables -A INPUT -p tcp --dport 50070 -j ACCEPT
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # connections to resource manager from outside the cluster
+  iptables -A INPUT -p tcp --dport 8088 -j ACCEPT
+elif [[ $self.Name() == Workers* ]]
+then
+  # TODO ?
+  : #no-op
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to accumulo monitor from outside the cluster
+  iptables -A INPUT -p tcp --dport 9995 -j ACCEPT
+fi
+
+# complete the iptables config
+#set the default policies:
+iptables -P INPUT DROP
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+# Create hadoop user and setup SSH
+############################################################
+useradd -U hadoop
+mkdir /home/hadoop/.ssh
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == NameNode ]]
+then
+  ssh-keygen -t rsa -N "" -f /home/hadoop/.ssh/id_rsa
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  # Need to download SSH public key from master
+  until wget -O /home/hadoop/.ssh/id_rsa.pub "http://namenode:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /home/hadoop/.ssh/id_rsa.pub &gt;&gt; /home/hadoop/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  do
+    sleep 2
+  done
+#end
+
+# Fix permissions in .ssh
+chown -R hadoop:hadoop /home/hadoop/.ssh
+chmod -R g-w /home/hadoop/.ssh
+chmod -R o-w /home/hadoop/.ssh
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  #set ( $sizeWorkerGroup = $Workers.size() - 1 )
+  #foreach ( $j in [0..$sizeWorkerGroup] )
+    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    do
+      sleep 2
+    done
+  #end
+fi
+
+# Configure Hadoop
+############################################################
+CORE_SITE_FILE=${HADOOP_CONF_DIR}/core-site.xml
+HDFS_SITE_FILE=${HADOOP_CONF_DIR}/hdfs-site.xml
+MAPRED_SITE_FILE=${HADOOP_CONF_DIR}/mapred-site.xml
+YARN_SITE_FILE=${HADOOP_CONF_DIR}/yarn-site.xml
+SLAVES_FILE=${HADOOP_CONF_DIR}/slaves
+
+echo "hadoop_exogeni_postboot: configuring Hadoop"
+
+cat &gt; $CORE_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;fs.default.name&lt;/name&gt;
+   &lt;value&gt;hdfs://$NameNode.Name():9000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $HDFS_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+&lt;configuration&gt;
+  &lt;property&gt;
+   &lt;name&gt;dfs.replication&lt;/name&gt;
+   &lt;value&gt;2&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $MAPRED_SITE_FILE &lt;&lt; EOF
+&lt;configuration&gt;
+ &lt;property&gt;
+   &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+   &lt;value&gt;yarn&lt;/value&gt;
+ &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $YARN_SITE_FILE &lt;&lt; EOF
+&lt;?xml version="1.0"?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;
+    &lt;value&gt;$ResourceManager.Name()&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.resourcemanager.bind-host&lt;/name&gt;
+    &lt;value&gt;0.0.0.0&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+    &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;yarn.nodemanager.aux-services.mapreduce_shuffle.class&lt;/name&gt;
+    &lt;value&gt;org.apache.hadoop.mapred.ShuffleHandler&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+EOF
+
+cat &gt; $SLAVES_FILE &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# make sure the hadoop user owns /opt/hadoop
+chown -R hadoop:hadoop ${HADOOP_PREFIX}
+
+# Centos 7 only
+############################################################
+# Why is the firewall not cooperating??
+# This should probably work, but it is not currently
+#echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
+#nmcli connection modify eth0 connection.zone internal
+
+# Start Hadoop
+############################################################
+echo "hadoop_exogeni_postboot: starting Hadoop"
+
+if [[ $self.Name() == NameNode ]]
+then
+  sudo -E -u hadoop $HADOOP_PREFIX/bin/hdfs namenode -format
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
+elif [[ $self.Name() == ResourceManager ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+  sudo -E -u hadoop $HADOOP_PREFIX/sbin/hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
+  sudo -E -u hadoop $HADOOP_YARN_HOME/sbin/yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
+fi
+
+
+############################################################
+# ZooKeeper
+# Assumes cluster has already been configured for Hadoop
+############################################################
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+
+# setup /etc/hosts
+############################################################
+echo $AccumuloMaster.IP("VLAN0") $AccumuloMaster.Name() &gt;&gt; /etc/hosts
+echo $NameNode.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $ResourceManager.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $AccumuloMaster.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+# Install ZooKeeper
+############################################################
+mkdir -p /opt/${ZOOKEEPER_VERSION}
+wget -nv --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://dist.apache.org/repos/dist/release/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar -C /opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+EOF
+
+# Configure ZooKeeper
+############################################################
+ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+mkdir -p ${ZOOKEEPER_DATADIR}
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == NameNode ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == ResourceManager ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == AccumuloMaster ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == NameNode ]] || [[ $self.Name() == ResourceManager ]] || [[ $self.Name() == AccumuloMaster ]]
+then
+  echo "accumulo_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Accumulo
+# Assumes cluster has already been configured for Hadoop and Zookeeper
+############################################################
+
+ACCUMULO_VERSION=1.8.1
+
+# Complete SSH setup for Accumulo Master
+############################################################
+until ssh-keyscan accumulomaster &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  ssh-keyscan `neuca-get-public-ip` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  ssh-keyscan 0.0.0.0 &gt;&gt; /home/hadoop/.ssh/known_hosts
+fi
+
+# see if the NameNode can copy private key to other nodes
+if [[ $self.Name() == NameNode ]]
+then
+  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+fi
+
+# Install Accumulo
+############################################################
+mkdir -p /opt/accumulo-${ACCUMULO_VERSION}
+curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/accumulo/${ACCUMULO_VERSION}/accumulo-${ACCUMULO_VERSION}-bin.tar.gz &gt; /opt/accumulo-${ACCUMULO_VERSION}.tgz
+tar -C /opt/accumulo-${ACCUMULO_VERSION} --extract --file /opt/accumulo-${ACCUMULO_VERSION}.tgz --strip-components=1
+rm -f /opt/accumulo-${ACCUMULO_VERSION}.tgz*
+
+export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
+
+cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
+export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
+export PATH=\$ACCUMULO_HOME/bin:\$PATH
+EOF
+
+# make sure the hadoop user owns /opt/accumulo
+chown -R hadoop:hadoop ${ACCUMULO_HOME}
+
+# Configure Accumulo
+# This assumes default accumulo password of 'secret'
+############################################################
+
+# accumulo bootstrap_config.sh tries to create a temp file in CWD.
+# 512MB bug https://issues.apache.org/jira/browse/ACCUMULO-4585
+cd ${ACCUMULO_HOME}
+sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --size 1GB --jvm --version 2
+
+# tell accumulo where to run each service
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/monitor
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/gc
+sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/tracers # not sure where these should be run ?
+
+cat &gt; ${ACCUMULO_HOME}/conf/slaves &lt;&lt; EOF
+#set ( $sizeWorkerGroup = $Workers.size() - 1 )
+#foreach ( $j in [0..$sizeWorkerGroup] )
+ `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+#end
+EOF
+
+# Need monitor to bind to public port
+sed -i "/ACCUMULO_MONITOR_BIND_ALL/ s/^# //" ${ACCUMULO_HOME}/conf/accumulo-env.sh
+
+# setup zookeeper hosts
+sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# disable SASL (?) Kerberos ??
+# this is disabled correctly by bootstrap_config.sh
+#sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# if you change the accumulo password in the 'init' stage below, you will need to change it here too
+#sed -i '/trace.token.property.password/!b;n;s/secret/NEW_PASSWORD/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+
+# Start Accumulo
+# Start each host separately, as they may be at different 
+# stages of configuration
+############################################################
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # wait until we have the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # init and run accumulo
+  # This assumes default accumulo password of 'secret'
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+
+elif [[ $self.Name() == Workers* ]]
+then
+  # make sure the NameNode has had time to send the SSH private key
+  until [ -f /home/hadoop/.ssh/id_rsa ]
+  do
+    sleep 2
+  done
+
+  # need to wait for 'init' of accumulo to finish
+  until sudo -E -u hadoop ${HADOOP_PREFIX}/bin/hdfs dfs -ls /accumulo/instance_id &gt; /dev/null 2&gt;&amp;1
+  do
+    sleep 1
+  done
+
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
+fi
+
+############################################################
+# Apache Rya
+#
+# Some steps from the Rya Vagrantfile:
+# https://github.com/apache/incubator-rya/blob/master/extras/vagrantExample/src/main/vagrant/Vagrantfile
+############################################################
+
+RYA_VERSION=3.2.10
+
+### wait for a directory to exist or timeout
+function waitForDir {
+    waitfordir="$1"
+    timeout=120
+    until [[ -d  "$waitfordir" ]]  
+    do
+        sleep 5
+        let timeout-=5
+        if [[ $timeout -le "0" ]]; then
+            echo "Timeout waiting for war to deploy, $waitfordir still does not exist."; 
+            exit
+        fi
+    done
+}
+
+# Install Apache Maven
+APACHE_MAVEN_VERSION=3.3.9
+APACHE_MAVEN=apache-maven-${APACHE_MAVEN_VERSION}
+APACHE_MAVEN_HOME=/opt/${APACHE_MAVEN}
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p ${APACHE_MAVEN_HOME}
+  curl --location --insecure --show-error https://archive.apache.org/dist/maven/maven-3/${APACHE_MAVEN_VERSION}/binaries/${APACHE_MAVEN}-bin.tar.gz &gt; /opt/${APACHE_MAVEN}.tgz
+  tar -C ${APACHE_MAVEN_HOME}  --extract --file /opt/${APACHE_MAVEN}.tgz --strip-components=1
+  rm -f /opt/${APACHE_MAVEN}.tgz*
+
+  
+  cat &gt; /etc/profile.d/apache-maven.sh &lt;&lt; EOF
+export M2_HOME=${APACHE_MAVEN_HOME}
+export PATH=\${M2_HOME}/bin:\${PATH}
+EOF
+
+fi
+
+# Install Tomcat
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  yum -y install tomcat
+  service tomcat start
+fi
+
+# Install OpenRDF Sesame
+SESAME_VERSION=2.7.6
+
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  mkdir -p /usr/share/tomcat/.aduna
+  chown -R tomcat:tomcat /usr/share/tomcat
+  ln --force -s /usr/share/tomcat/.aduna/openrdf-sesame/logs /var/log/tomcat/openrdf-sesame
+
+  SESAME_WAR=/var/lib/tomcat/webapps/openrdf-sesame.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-server/${SESAME_VERSION}/sesame-http-server-${SESAME_VERSION}.war &gt; ${SESAME_WAR}
+
+  WORKBENCH_WAR=/var/lib/tomcat/webapps/openrdf-workbench.war
+
+  curl --location --insecure --show-error http://repo1.maven.org/maven2/org/openrdf/sesame/sesame-http-workbench/${SESAME_VERSION}/sesame-http-workbench-${SESAME_VERSION}.war &gt; ${WORKBENCH_WAR}
+
+fi
+
+# Download, compile, and 'install' Rya
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  
+  mkdir -p /opt/rya-source-${RYA_VERSION}
+  curl --location --insecure --show-error https://github.com/apache/incubator-rya/archive/rel/rya-incubating-${RYA_VERSION}.tar.gz &gt; /opt/rya-source-${RYA_VERSION}.tgz
+  tar -C /opt/rya-source-${RYA_VERSION} --extract --file /opt/rya-source-${RYA_VERSION}.tgz --strip-components=1
+  rm -f /opt/rya-source-${RYA_VERSION}.tgz*
+
+  cd /opt/rya-source-${RYA_VERSION}
+
+  # skip tests when building the release
+  ${APACHE_MAVEN_HOME}/bin/mvn clean install -DskipTests
+
+  cp /opt/rya-source-${RYA_VERSION}/web/web.rya/target/web.rya.war /var/lib/tomcat/webapps/web.rya.war
+fi
+
+# wait for tomcat to deploy wars
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  waitForDir /var/lib/tomcat/webapps/openrdf-workbench/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/openrdf-sesame/WEB-INF/lib/
+  waitForDir /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/
+
+  # These are older libs that breaks tomcat 7
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/servlet-api-2.5*.jar
+  rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/jsp-api-2.1.jar
+fi
+
+# Configure Rya
+# Accumulo settings must match settings from above Accumulo section
+if [[ $self.Name() == AccumuloMaster ]]
+then
+
+cat &gt; /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/environment.properties &lt;&lt;EOF
+# Accumulo instance name
+instance.name=exogeni
+# Accumulo Zookeepers
+instance.zk=zoo1:2181,zoo2:2181,zoo3:2181
+# Accumulo username
+instance.username=root
+# Accumulo password
+instance.password=secret
+
+# Rya Table Prefix
+rya.tableprefix=triplestore_
+# To display the query plan
+rya.displayqueryplan=true
+EOF
+
+fi
+
+# Open tomcat port in iptables
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  # connections to Rya/tomcat from outside the cluster
+  iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+  service iptables save
+fi
+
+# Restart Tomcat (?)
+if [[ $self.Name() == AccumuloMaster ]]
+then
+  service tomcat restart
+fi
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term">
+    <time:hasDurationDescription rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#TermDuration"/>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#Interval"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster-ip-172-16-100-3">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.3</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode-ip-172-16-100-1"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
+    <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode-ip-172-16-100-1">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.1</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster-ip-172-16-100-3"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+</rdf:RDF>
