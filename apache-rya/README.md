@@ -1,4 +1,4 @@
-This recipe installs and configures Apache Rya on top of the [accumulo](../accumulo/) recipe.  Please see that README for details on the Accumulo installation.
+This recipe installs and configures Apache Rya on top of the [accumulo](../accumulo/) recipe.  Please see that README for details on the Accumulo installation. Starting with a base OS image represents a trade-off between customizability and fast startup times -- after ExoGENI reports the nodes are available, installation and configuration of Apache Rya will take approximately 30 minutes.
 
 ## Web Interfaces
 _WARNING_ these web interfaces are currently open with unrestricted/unauthenticated world-wide public internet access. Also please note the warning on web interfaces from the [hadoop 2.7.3](../hadoop/hadoop-2.7.3/) and [accumulo](../accumulo/) recipes.

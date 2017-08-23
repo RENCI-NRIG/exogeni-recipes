@@ -22,7 +22,7 @@ echo `echo $self.Name() | sed 's/\//-/g'` > /etc/hostname
 # Install Java
 ############################################################
 yum makecache fast
-#yum -y update # disabled only during testing. should be enabled in production
+yum -y update # disabled only during testing. should be enabled in production
 yum install -y wget java-1.8.0-openjdk-devel
 
 export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:/bin/java::")

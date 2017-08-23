@@ -1,4 +1,6 @@
-This recipe installs and configured Zookeeper and Accumulo on top of the [hadoop 2.7.3](../hadoop/hadoop-2.7.3/) recipe.  Please see that README for details on the Hadoop installation.
+This recipe installs and configured Zookeeper and Accumulo on top of the [hadoop 2.7.3](../hadoop/hadoop-2.7.3/) recipe.  Please see that README for details on the Hadoop installation. Starting with a base OS image represents a trade-off between customizability and fast startup times -- after ExoGENI reports the nodes are available, installation and configuration of Accumulo will take approximately 5 minutes.
+
+![Accumulo ExoGENI Request Topology](accumulo_exogeni_request_topology.png)
 
 Zookeeper is installed into `/opt`, and are owned (and run) by the `root` user.
 
