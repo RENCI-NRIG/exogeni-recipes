@@ -102,7 +102,7 @@ then
   # allow cluster to download SSH public key
   # port is only accessible to internal cluster
   mkdir /public_html
-  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  cp -u /home/hadoop/.ssh/id_rsa.pub /public_html/
   (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &
 
 else
@@ -134,10 +134,10 @@ chmod -R o-w /home/hadoop/.ssh
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done

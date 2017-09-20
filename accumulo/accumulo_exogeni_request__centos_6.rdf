@@ -168,7 +168,7 @@ then
   # allow cluster to download SSH public key
   # port is only accessible to internal cluster
   mkdir /public_html
-  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  cp -u /home/hadoop/.ssh/id_rsa.pub /public_html/
   (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
 else
   # Need to download SSH public key from master
@@ -199,10 +199,10 @@ chmod -R o-w /home/hadoop/.ssh
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -423,7 +423,7 @@ fi
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
 fi
 
 # Install Accumulo
@@ -437,7 +437,7 @@ export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
 
 cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
 export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
-export PATH=\$HADOOP_PREFIX/bin:\$PATH
+#export PATH=\$ACCUMULO_HOME/bin:\$PATH
 EOF
 
 # make sure the hadoop user owns /opt/accumulo
@@ -512,7 +512,6 @@ then
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
-
 </request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
@@ -526,8 +525,8 @@ fi
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
     <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
     <topology:hasGUID>c771e736-81a0-4966-869d-817833cd8fac</topology:hasGUID>
@@ -648,7 +647,7 @@ then
   # allow cluster to download SSH public key
   # port is only accessible to internal cluster
   mkdir /public_html
-  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  cp -u /home/hadoop/.ssh/id_rsa.pub /public_html/
   (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
 else
   # Need to download SSH public key from master
@@ -679,10 +678,10 @@ chmod -R o-w /home/hadoop/.ssh
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -903,7 +902,7 @@ fi
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
 fi
 
 # Install Accumulo
@@ -917,7 +916,7 @@ export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
 
 cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
 export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
-export PATH=\$HADOOP_PREFIX/bin:\$PATH
+#export PATH=\$ACCUMULO_HOME/bin:\$PATH
 EOF
 
 # make sure the hadoop user owns /opt/accumulo
@@ -991,7 +990,6 @@ then
 
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
-
 
 </request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
@@ -1116,7 +1114,7 @@ then
   # allow cluster to download SSH public key
   # port is only accessible to internal cluster
   mkdir /public_html
-  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  cp -u /home/hadoop/.ssh/id_rsa.pub /public_html/
   (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
 else
   # Need to download SSH public key from master
@@ -1147,10 +1145,10 @@ chmod -R o-w /home/hadoop/.ssh
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -1371,7 +1369,7 @@ fi
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
 fi
 
 # Install Accumulo
@@ -1385,7 +1383,7 @@ export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
 
 cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
 export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
-export PATH=\$HADOOP_PREFIX/bin:\$PATH
+#export PATH=\$ACCUMULO_HOME/bin:\$PATH
 EOF
 
 # make sure the hadoop user owns /opt/accumulo
@@ -1459,7 +1457,6 @@ then
 
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
-
 
 </request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
@@ -1582,7 +1579,7 @@ then
   # allow cluster to download SSH public key
   # port is only accessible to internal cluster
   mkdir /public_html
-  cp /home/hadoop/.ssh/id_rsa.pub /public_html/
+  cp -u /home/hadoop/.ssh/id_rsa.pub /public_html/
   (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
 else
   # Need to download SSH public key from master
@@ -1613,10 +1610,10 @@ chmod -R o-w /home/hadoop/.ssh
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -1837,7 +1834,7 @@ fi
 # see if the NameNode can copy private key to other nodes
 if [[ $self.Name() == NameNode ]]
 then
-  until sudo -E -u hadoop scp -o PasswordAuthentication=no /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
+  until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa accumulomaster:/home/hadoop/.ssh/id_rsa; do sleep 2; done
 fi
 
 # Install Accumulo
@@ -1851,7 +1848,7 @@ export ACCUMULO_HOME=/opt/accumulo-${ACCUMULO_VERSION}
 
 cat &gt; /etc/profile.d/accumulo.sh &lt;&lt; EOF
 export ACCUMULO_HOME=/opt/accumulo-$ACCUMULO_VERSION
-export PATH=\$HADOOP_PREFIX/bin:\$PATH
+#export PATH=\$ACCUMULO_HOME/bin:\$PATH
 EOF
 
 # make sure the hadoop user owns /opt/accumulo
@@ -1926,7 +1923,6 @@ then
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
-
 </request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
@@ -1943,9 +1939,9 @@ fi
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
