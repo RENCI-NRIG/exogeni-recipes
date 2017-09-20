@@ -10,7 +10,7 @@ Accumulo has _not_ been configured for Security.
 
 ## Web Interfaces
 _WARNING_ these web interfaces are currently open with unrestricted/unauthenticated world-wide public internet access. Also please note the warning on web interfaces from the [hadoop 2.7.3](../hadoop/hadoop-2.7.3/) recipe.
-* Accumulo Monitor: http://AccumuloMaster:50070/
+* Accumulo Monitor: http://AccumuloMaster:9995/
 
 ## Zookeeper
 The nodes `NameNode`, `ResourceManager`, and `AccumuloMaster` act as the Zookeeper cluster of `zoo1`, `zoo2`, and `zoo3` (respectively).
