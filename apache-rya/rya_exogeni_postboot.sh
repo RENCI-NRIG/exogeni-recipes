@@ -7,7 +7,7 @@
 # Hadoop
 ############################################################
 
-HADOOP_VERSION=hadoop-2.7.3
+HADOOP_VERSION=hadoop-2.7.4
 
 # setup /etc/hosts
 ############################################################
@@ -393,8 +393,9 @@ chown -R hadoop:hadoop ${ACCUMULO_HOME}
 
 # accumulo bootstrap_config.sh tries to create a temp file in CWD.
 # 512MB bug https://issues.apache.org/jira/browse/ACCUMULO-4585
+# WARNING: overwrites any existing config
 cd ${ACCUMULO_HOME}
-sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --size 1GB --jvm --version 2
+sudo -E -u hadoop ${ACCUMULO_HOME}/bin/bootstrap_config.sh --overwrite --size 1GB --jvm --version 2
 
 # tell accumulo where to run each service
 sed -i "/localhost/ s/.*/$AccumuloMaster.Name()/" ${ACCUMULO_HOME}/conf/masters
@@ -436,7 +437,8 @@ then
 
   # init and run accumulo
   # This assumes default accumulo password of 'secret'
-  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  # WARNING: any existing instance of the same name will be deleted
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --clear-instance-name --instance-name exogeni --password secret --user root
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 
 elif [[ $self.Name() == Workers* ]]
@@ -550,9 +552,19 @@ then
   waitForDir /var/lib/tomcat/webapps/openrdf-sesame/WEB-INF/lib/
   waitForDir /var/lib/tomcat/webapps/web.rya/WEB-INF/classes/
 
+  # copy Rya files to OpenRDF Sesame
+  yes | cp --update /opt/rya-source-${RYA_VERSION}/web/web.rya/target/web.rya/WEB-INF/lib/* /var/lib/tomcat/webapps/openrdf-workbench/WEB-INF/lib/
+  yes | cp --update /opt/rya-source-${RYA_VERSION}/web/web.rya/target/web.rya/WEB-INF/lib/* /var/lib/tomcat/webapps/openrdf-sesame/WEB-INF/lib/
+  
   # These are older libs that breaks tomcat 7
   rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/servlet-api-2.5*.jar
   rm -f /var/lib/tomcat/webapps/web.rya/WEB-INF/lib/jsp-api-2.1.jar
+
+  # templates for OpenRDF Sesame
+  yes | cp --force /opt/rya-source-${RYA_VERSION}/extras/vagrantExample/src/main/resources/* /var/lib/tomcat/webapps/openrdf-workbench/transformations/
+
+  # fix ownership
+  chown -R tomcat:tomcat /var/lib/tomcat
 fi
 
 # Configure Rya

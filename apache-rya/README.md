@@ -3,6 +3,7 @@ This recipe installs and configures Apache Rya on top of the [accumulo](../accum
 ## Web Interfaces
 _WARNING_ these web interfaces are currently open with unrestricted/unauthenticated world-wide public internet access. Also please note the warning on web interfaces from the [hadoop 2.7.3](../hadoop/hadoop-2.7.3/) and [accumulo](../accumulo/) recipes.
 * Rya web: http://AccumuloMaster:8080/web.rya/sparqlQuery.jsp
+* Rya OpenRDF Workbench: http://AccumuloMaster:8080/openrdf-workbench/
 
 ## References
 * https://rya.apache.org/
