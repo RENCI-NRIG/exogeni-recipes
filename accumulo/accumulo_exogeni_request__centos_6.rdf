@@ -63,7 +63,13 @@
 # https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/hadoop/hadoop-2.7.3/hadoop_exogeni_postboot.txt
 ############################################################
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.3
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -92,6 +98,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -523,8 +532,8 @@ fi
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
@@ -542,7 +551,13 @@ fi
 # https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/hadoop/hadoop-2.7.3/hadoop_exogeni_postboot.txt
 ############################################################
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.3
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -571,6 +586,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -1009,7 +1027,13 @@ fi
 # https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/hadoop/hadoop-2.7.3/hadoop_exogeni_postboot.txt
 ############################################################
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.3
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -1038,6 +1062,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -1474,7 +1501,13 @@ fi
 # https://github.com/RENCI-NRIG/exogeni-recipes/tree/master/hadoop/hadoop-2.7.3/hadoop_exogeni_postboot.txt
 ############################################################
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.3
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -1503,6 +1536,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -1940,8 +1976,8 @@ fi
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>

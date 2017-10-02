@@ -9,6 +9,11 @@
 
 HADOOP_VERSION=hadoop-2.7.4
 
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
+
 # setup /etc/hosts
 ############################################################
 echo $NameNode.IP("VLAN0") $NameNode.Name() >> /etc/hosts
@@ -36,6 +41,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz > /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
