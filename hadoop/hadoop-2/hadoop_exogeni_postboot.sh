@@ -1,6 +1,12 @@
 #!/bin/bash
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.4
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -8,10 +14,10 @@ echo $NameNode.IP("VLAN0") $NameNode.Name() >> /etc/hosts
 echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() >> /etc/hosts
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /etc/hosts
+ echo $Workers.get($j).IP("VLAN0") $(echo $Workers.get($j).Name() | sed 's/\//-/g') >> /etc/hosts
 #end
 
-echo `echo $self.Name() | sed 's/\//-/g'` > /etc/hostname
+echo $(echo $self.Name() | sed 's/\//-/g') > /etc/hostname
 /bin/hostname -F /etc/hostname
 
 # Install Java
@@ -30,6 +36,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz > /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -120,7 +129,7 @@ until ssh-keyscan namenode >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
 until ssh-keyscan resourcemanager >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
-  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` >> /home/hadoop/.ssh/known_hosts
+  until ssh-keyscan $(echo $Workers.get($j).Name() | sed 's/\//-/g') >> /home/hadoop/.ssh/known_hosts
   do
     sleep 2
   done
@@ -137,7 +146,7 @@ then
   until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa $(echo $Workers.get($j).Name() | sed 's/\//-/g'):/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -211,7 +220,7 @@ EOF
 cat > $SLAVES_FILE << EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+ $(echo $Workers.get($j).Name() | sed 's/\//-/g')
 #end
 EOF
 

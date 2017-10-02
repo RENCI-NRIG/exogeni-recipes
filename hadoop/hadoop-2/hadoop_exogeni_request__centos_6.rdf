@@ -53,7 +53,13 @@
     <topology:hasGUID>ead50214-6f76-41b4-a4a2-6dbc52fdf727</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.4
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -61,10 +67,10 @@ echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+ echo $Workers.get($j).IP("VLAN0") $(echo $Workers.get($j).Name() | sed 's/\//-/g') &gt;&gt; /etc/hosts
 #end
 
-echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+echo $(echo $self.Name() | sed 's/\//-/g') &gt; /etc/hostname
 /bin/hostname -F /etc/hostname
 
 # Install Java
@@ -83,6 +89,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -173,7 +182,7 @@ until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; d
 until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
-  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  until ssh-keyscan $(echo $Workers.get($j).Name() | sed 's/\//-/g') &gt;&gt; /home/hadoop/.ssh/known_hosts
   do
     sleep 2
   done
@@ -190,7 +199,7 @@ then
   until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa $(echo $Workers.get($j).Name() | sed 's/\//-/g'):/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -264,7 +273,7 @@ EOF
 cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+ $(echo $Workers.get($j).Name() | sed 's/\//-/g')
 #end
 EOF
 
@@ -314,9 +323,9 @@ fi</request-schema:postBootScript>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
     <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
     <topology:hasGUID>c771e736-81a0-4966-869d-817833cd8fac</topology:hasGUID>
@@ -327,7 +336,13 @@ fi</request-schema:postBootScript>
     <topology:hasGUID>ec5fac4f-2c45-4df0-839a-5f3e83ea5d76</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.4
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -335,10 +350,10 @@ echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+ echo $Workers.get($j).IP("VLAN0") $(echo $Workers.get($j).Name() | sed 's/\//-/g') &gt;&gt; /etc/hosts
 #end
 
-echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+echo $(echo $self.Name() | sed 's/\//-/g') &gt; /etc/hostname
 /bin/hostname -F /etc/hostname
 
 # Install Java
@@ -357,6 +372,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -447,7 +465,7 @@ until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; d
 until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
-  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  until ssh-keyscan $(echo $Workers.get($j).Name() | sed 's/\//-/g') &gt;&gt; /home/hadoop/.ssh/known_hosts
   do
     sleep 2
   done
@@ -464,7 +482,7 @@ then
   until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa $(echo $Workers.get($j).Name() | sed 's/\//-/g'):/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -538,7 +556,7 @@ EOF
 cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+ $(echo $Workers.get($j).Name() | sed 's/\//-/g')
 #end
 EOF
 
@@ -590,7 +608,13 @@ fi</request-schema:postBootScript>
     <topology:hasGUID>a1063815-e4f9-47cb-aab8-53f20d45396e</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
 
-HADOOP_VERSION=hadoop-2.7.3
+# using stable2 link for Hadoop Version
+# HADOOP_VERSION=hadoop-2.7.4
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
 
 # setup /etc/hosts
 ############################################################
@@ -598,10 +622,10 @@ echo $NameNode.IP("VLAN0") $NameNode.Name() &gt;&gt; /etc/hosts
 echo $ResourceManager.IP("VLAN0") $ResourceManager.Name() &gt;&gt; /etc/hosts
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- echo $Workers.get($j).IP("VLAN0") `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /etc/hosts
+ echo $Workers.get($j).IP("VLAN0") $(echo $Workers.get($j).Name() | sed 's/\//-/g') &gt;&gt; /etc/hosts
 #end
 
-echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+echo $(echo $self.Name() | sed 's/\//-/g') &gt; /etc/hostname
 /bin/hostname -F /etc/hostname
 
 # Install Java
@@ -620,6 +644,9 @@ EOF
 
 # Install Hadoop
 ############################################################
+stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/stable2)
+# stable2 should look like: link hadoop-2.7.4
+HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
 curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz &gt; /opt/${HADOOP_VERSION}.tgz
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
@@ -710,7 +737,7 @@ until ssh-keyscan namenode &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; d
 until ssh-keyscan resourcemanager &gt;&gt; /home/hadoop/.ssh/known_hosts; do sleep 2; done
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
-  until ssh-keyscan `echo $Workers.get($j).Name() | sed 's/\//-/g'` &gt;&gt; /home/hadoop/.ssh/known_hosts
+  until ssh-keyscan $(echo $Workers.get($j).Name() | sed 's/\//-/g') &gt;&gt; /home/hadoop/.ssh/known_hosts
   do
     sleep 2
   done
@@ -727,7 +754,7 @@ then
   until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa resourcemanager:/home/hadoop/.ssh/id_rsa; do sleep 2; done
   #set ( $sizeWorkerGroup = $Workers.size() - 1 )
   #foreach ( $j in [0..$sizeWorkerGroup] )
-    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa `echo $Workers.get($j).Name() | sed 's/\//-/g'`:/home/hadoop/.ssh/id_rsa
+    until sudo -u hadoop scp -o BatchMode=yes /home/hadoop/.ssh/id_rsa $(echo $Workers.get($j).Name() | sed 's/\//-/g'):/home/hadoop/.ssh/id_rsa
     do
       sleep 2
     done
@@ -801,7 +828,7 @@ EOF
 cat &gt; $SLAVES_FILE &lt;&lt; EOF
 #set ( $sizeWorkerGroup = $Workers.size() - 1 )
 #foreach ( $j in [0..$sizeWorkerGroup] )
- `echo $Workers.get($j).Name() | sed 's/\//-/g'`
+ $(echo $Workers.get($j).Name() | sed 's/\//-/g')
 #end
 EOF
 
@@ -856,9 +883,9 @@ fi</request-schema:postBootScript>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
   </rdf:Description>
