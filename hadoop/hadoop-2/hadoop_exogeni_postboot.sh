@@ -49,6 +49,7 @@ export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
 
 cat > /etc/profile.d/hadoop.sh << EOF
+export HADOOP_HOME=${HADOOP_PREFIX}
 export HADOOP_PREFIX=${HADOOP_PREFIX}
 export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop

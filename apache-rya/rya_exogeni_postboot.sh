@@ -7,7 +7,11 @@
 # Hadoop
 ############################################################
 
-HADOOP_VERSION=hadoop-2.7.4
+# HADOOP_VERSION=hadoop-2.7.4 # using 'stable2'
+ACCUMULO_VERSION=1.8.1
+#RYA_VERSION="rel/rya-incubating-3.2.10"
+#RYA_VERSION="rya-incubating-3.2.11-rc1"
+RYA_VERSION="rel/rya-incubating-3.2.11"
 
 # Velocity Hacks
 #set( $bash_var = '${' )
@@ -54,6 +58,7 @@ export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
 
 cat > /etc/profile.d/hadoop.sh << EOF
+export HADOOP_HOME=${HADOOP_PREFIX}
 export HADOOP_PREFIX=${HADOOP_PREFIX}
 export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
@@ -361,8 +366,6 @@ fi
 # Assumes cluster has already been configured for Hadoop and Zookeeper
 ############################################################
 
-ACCUMULO_VERSION=1.8.1
-
 # Complete SSH setup for Accumulo Master
 ############################################################
 until ssh-keyscan accumulomaster >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
@@ -473,8 +476,6 @@ fi
 # https://github.com/apache/incubator-rya/blob/master/extras/vagrantExample/src/main/vagrant/Vagrantfile
 ############################################################
 
-RYA_VERSION=3.2.10
-
 ### wait for a directory to exist or timeout
 function waitForDir {
     waitfordir="$1"
@@ -541,7 +542,7 @@ if [[ $self.Name() == AccumuloMaster ]]
 then
   
   mkdir -p /opt/rya-source-${RYA_VERSION}
-  curl --location --insecure --show-error https://github.com/apache/incubator-rya/archive/rel/rya-incubating-${RYA_VERSION}.tar.gz > /opt/rya-source-${RYA_VERSION}.tgz
+  curl --location --insecure --show-error https://github.com/apache/incubator-rya/archive/${RYA_VERSION}.tar.gz > /opt/rya-source-${RYA_VERSION}.tgz
   tar -C /opt/rya-source-${RYA_VERSION} --extract --file /opt/rya-source-${RYA_VERSION}.tgz --strip-components=1
   rm -f /opt/rya-source-${RYA_VERSION}.tgz*
 
