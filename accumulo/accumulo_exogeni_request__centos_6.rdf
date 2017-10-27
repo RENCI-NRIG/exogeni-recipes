@@ -481,8 +481,8 @@ sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCU
 # this is disabled correctly by bootstrap_config.sh
 #sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
-# if you change the accumulo password in the 'init' stage below, you will need to change it here too
-sed -i '/trace.token.property.password/!b;n;s/secret/${ACCUMULO_PASSWORD}/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+# if the password is changed by the user, the script needs to change it here too.
+sed -i "/&lt;value&gt;secret/s/secret/${ACCUMULO_PASSWORD}/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # Start Accumulo
 # Start each host separately, as they may be at different 
@@ -965,8 +965,8 @@ sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCU
 # this is disabled correctly by bootstrap_config.sh
 #sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
-# if you change the accumulo password in the 'init' stage below, you will need to change it here too
-sed -i '/trace.token.property.password/!b;n;s/secret/${ACCUMULO_PASSWORD}/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+# if the password is changed by the user, the script needs to change it here too.
+sed -i "/&lt;value&gt;secret/s/secret/${ACCUMULO_PASSWORD}/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # Start Accumulo
 # Start each host separately, as they may be at different 
@@ -1437,8 +1437,8 @@ sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCU
 # this is disabled correctly by bootstrap_config.sh
 #sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
-# if you change the accumulo password in the 'init' stage below, you will need to change it here too
-sed -i '/trace.token.property.password/!b;n;s/secret/${ACCUMULO_PASSWORD}/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+# if the password is changed by the user, the script needs to change it here too.
+sed -i "/&lt;value&gt;secret/s/secret/${ACCUMULO_PASSWORD}/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # Start Accumulo
 # Start each host separately, as they may be at different 
@@ -1907,8 +1907,8 @@ sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCU
 # this is disabled correctly by bootstrap_config.sh
 #sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
-# if you change the accumulo password in the 'init' stage below, you will need to change it here too
-sed -i '/trace.token.property.password/!b;n;s/secret/${ACCUMULO_PASSWORD}/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+# if the password is changed by the user, the script needs to change it here too.
+sed -i "/&lt;value&gt;secret/s/secret/${ACCUMULO_PASSWORD}/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # Start Accumulo
 # Start each host separately, as they may be at different 
@@ -1960,9 +1960,9 @@ fi
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
   </rdf:Description>
