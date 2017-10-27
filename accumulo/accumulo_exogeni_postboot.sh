@@ -7,6 +7,11 @@
 
 # using stable2 link for Hadoop Version
 # HADOOP_VERSION=hadoop-2.7.3
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+ACCUMULO_VERSION=1.8.1
+
+# The default accumulo password.  Should be changed!
+ACCUMULO_PASSWORD=secret
 
 # Velocity Hacks
 #set( $bash_var = '${' )
@@ -44,7 +49,10 @@ stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/
 # stable2 should look like: link hadoop-2.7.4
 HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
-curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz > /opt/${HADOOP_VERSION}.tgz
+
+# use the suggested mirror for the actual download
+curl --location --insecure --show-error "https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz" > /opt/${HADOOP_VERSION}.tgz
+
 tar -C /opt/${HADOOP_VERSION} --extract --file /opt/${HADOOP_VERSION}.tgz --strip-components=1
 rm -f /opt/${HADOOP_VERSION}.tgz*
 
@@ -53,6 +61,7 @@ export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
 
 cat > /etc/profile.d/hadoop.sh << EOF
+export HADOOP_HOME=${HADOOP_PREFIX}
 export HADOOP_PREFIX=${HADOOP_PREFIX}
 export HADOOP_YARN_HOME=${HADOOP_PREFIX}
 export HADOOP_CONF_DIR=${HADOOP_PREFIX}/etc/hadoop
@@ -234,13 +243,6 @@ EOF
 # make sure the hadoop user owns /opt/hadoop
 chown -R hadoop:hadoop ${HADOOP_PREFIX}
 
-# Centos 7 only
-############################################################
-# Why is the firewall not cooperating??
-# This should probably work, but it is not currently
-#echo "hadoop_exogeni_postboot: attempting to fix eth0 trusted zone"
-#nmcli connection modify eth0 connection.zone internal
-
 # Start Hadoop
 ############################################################
 echo "hadoop_exogeni_postboot: starting Hadoop"
@@ -273,8 +275,6 @@ fi
 # ZooKeeper
 # Assumes cluster has already been configured for Hadoop
 ############################################################
-
-ZOOKEEPER_VERSION=zookeeper-3.4.6
 
 # setup /etc/hosts
 ############################################################
@@ -360,8 +360,6 @@ fi
 # Assumes cluster has already been configured for Hadoop and Zookeeper
 ############################################################
 
-ACCUMULO_VERSION=1.8.1
-
 # Complete SSH setup for Accumulo Master
 ############################################################
 until ssh-keyscan accumulomaster >> /home/hadoop/.ssh/known_hosts; do sleep 2; done
@@ -395,7 +393,6 @@ EOF
 chown -R hadoop:hadoop ${ACCUMULO_HOME}
 
 # Configure Accumulo
-# This assumes default accumulo password of 'secret'
 ############################################################
 
 # accumulo bootstrap_config.sh tries to create a temp file in CWD.
@@ -426,8 +423,8 @@ sed -i "/localhost:2181/ s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/" ${ACCU
 # this is disabled correctly by bootstrap_config.sh
 #sed -i '/instance.rpc.sasl.enabled/!b;n;s/true/false/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
-# if you change the accumulo password in the 'init' stage below, you will need to change it here too
-#sed -i '/trace.token.property.password/!b;n;s/secret/NEW_PASSWORD/' ${ACCUMULO_HOME}/conf/accumulo-site.xml
+# if the password is changed by the user, the script needs to change it here too.
+sed -i "/<value>secret/s/secret/${ACCUMULO_PASSWORD}/" ${ACCUMULO_HOME}/conf/accumulo-site.xml
 
 # Start Accumulo
 # Start each host separately, as they may be at different 
@@ -442,8 +439,7 @@ then
   done
 
   # init and run accumulo
-  # This assumes default accumulo password of 'secret'
-  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password secret --user root
+  sudo -E -u hadoop ${ACCUMULO_HOME}/bin/accumulo init --instance-name exogeni --password ${ACCUMULO_PASSWORD} --user root
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 
 elif [[ $self.Name() == Workers* ]]
