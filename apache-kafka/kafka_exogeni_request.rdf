@@ -1,0 +1,754 @@
+<rdf:RDF
+    xmlns:ec2="http://geni-orca.renci.org/owl/ec2.owl#"
+    xmlns:kansei="http://geni-orca.renci.org/owl/kansei.owl#"
+    xmlns:app-color="http://geni-orca.renci.org/owl/app-color.owl#"
+    xmlns:geni="http://geni-orca.renci.org/owl/geni.owl#"
+    xmlns:domain="http://geni-orca.renci.org/owl/domain.owl#"
+    xmlns:eucalyptus="http://geni-orca.renci.org/owl/eucalyptus.owl#"
+    xmlns:collections="http://geni-orca.renci.org/owl/collections.owl#"
+    xmlns:openflow="http://geni-orca.renci.org/owl/openflow.owl#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:exogeni="http://geni-orca.renci.org/owl/exogeni.owl#"
+    xmlns:request="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#"
+    xmlns:layer="http://geni-orca.renci.org/owl/layer.owl#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:request-schema="http://geni-orca.renci.org/owl/request.owl#"
+    xmlns:ip4="http://geni-orca.renci.org/owl/ip4.owl#"
+    xmlns:planetlab="http://geni-orca.renci.org/owl/planetlab.owl#"
+    xmlns:ethernet="http://geni-orca.renci.org/owl/ethernet.owl#"
+    xmlns:dtn="http://geni-orca.renci.org/owl/dtn.owl#"
+    xmlns:time="http://www.w3.org/2006/time#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:modify-schema="http://geni-orca.renci.org/owl/modify.owl#"
+    xmlns:compute="http://geni-orca.renci.org/owl/compute.owl#"
+    xmlns:topology="http://geni-orca.renci.org/owl/topology.owl#"
+    xmlns:orca="http://geni-orca.renci.org/owl/orca.rdf#" > 
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka1-ip-172-16-100-3">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.3</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#Centos+6.9+v1.0.2">
+    <topology:hasName rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Centos 6.9 v1.0.2</topology:hasName>
+    <topology:hasURL>http://geni-images.renci.org/images/standard/centos/centos6.9-v1.0.2/centos6.9-v1.0.2.xml</topology:hasURL>
+    <topology:hasGUID>d8df033619c5ef7a416d078e194599af021663de</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#DiskImage"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#kafka1">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka1"/>
+    <topology:hasGUID>9f4d1248-5c34-4d37-96cd-708813aebc56</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+KAFKA_VERSION=1.0.0
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
+
+# setup /etc/hosts
+############################################################
+echo $kafka0.IP("VLAN0") $kafka0.Name() &gt;&gt; /etc/hosts
+echo $kafka1.IP("VLAN0") $kafka1.Name() &gt;&gt; /etc/hosts
+echo $kafka2.IP("VLAN0") $kafka2.Name() &gt;&gt; /etc/hosts
+echo $kafka0.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $kafka1.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $kafka2.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+yum --assumeyes update # disabled only during testing. should be enabled in production
+yum install --assumeyes wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables --flush; iptables --delete-chain; iptables --zero
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables --append INPUT --in-interface lo --jump ACCEPT
+iptables --append INPUT --destination 127.0.0.0/8 --jump REJECT
+#Block some common attacks:
+iptables --append INPUT --protocol tcp ! --syn -m state --state NEW --jump DROP
+iptables --append INPUT --protocol tcp --tcp-flags ALL NONE --jump DROP
+iptables --append INPUT --protocol tcp --tcp-flags ALL ALL --jump DROP
+#Accept all established inbound connections:
+iptables --append INPUT -m state --state ESTABLISHED,RELATED --jump ACCEPT
+#Allow SSH connections:
+iptables --append INPUT --protocol tcp --dport 22 --jump ACCEPT
+
+# Allow internal cluster connections
+iptables --append INPUT --in-interface eth1 --jump ACCEPT
+
+#Node specific iptables config
+
+
+# complete the iptables config
+#set the default policies:
+iptables --policy INPUT DROP
+iptables --policy OUTPUT ACCEPT
+iptables --policy FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+
+############################################################
+# ZooKeeper
+# https://zookeeper.apache.org/doc/r3.4.6/zookeeperStarted.html
+############################################################
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+
+# Install ZooKeeper
+############################################################
+mkdir --parents ${ZOOKEEPER_HOME}
+echo "kafka_exogeni_postboot: downloading ZooKeeper"
+
+wget --no-verbose --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://www.apache.org/dyn/closer.cgi?action=download&amp;filename=/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar --directory=/opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=${ZOOKEEPER_HOME}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+export ZOOKEEPER_DATADIR=${ZOOKEEPER_DATADIR}
+EOF
+
+# Configure ZooKeeper
+############################################################
+mkdir --parents ${ZOOKEEPER_DATADIR}
+echo "kafka_exogeni_postboot: configuring ZooKeeper"
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == kafka0 ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == kafka1 ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == kafka2 ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == kafka0 ]] || [[ $self.Name() == kafka1 ]] || [[ $self.Name() == kafka2 ]]
+then
+  echo "kafka_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Kafka
+# Assumes cluster has already been configured for Zookeeper
+# https://kafka.apache.org/quickstart
+############################################################
+export KAFKA_HOME=/opt/kafka_2.11-${KAFKA_VERSION}
+export KAFKA_DATADIR=/var/lib/kafka/
+export KAFKA_SERVER_CONF=${KAFKA_HOME}/config/server.properties
+
+# Install Kafka
+############################################################
+mkdir --parents ${KAFKA_HOME}
+echo "kafka_exogeni_postboot: downloading Kafka"
+
+curl --location --insecure --show-error "https://www.apache.org/dyn/closer.cgi?action=download&amp;filename=/kafka/${KAFKA_VERSION}/kafka_2.11-${KAFKA_VERSION}.tgz" &gt; /opt/kafka_2.11-${KAFKA_VERSION}.tgz
+tar --directory=/opt/kafka_2.11-${KAFKA_VERSION} --extract --file /opt/kafka_2.11-${KAFKA_VERSION}.tgz --strip-components=1
+rm --force /opt/kafka_2.11-${KAFKA_VERSION}.tgz*
+
+cat &gt; /etc/profile.d/kafka.sh &lt;&lt; EOF
+export KAFKA_HOME=${KAFKA_HOME}
+#export PATH=\$KAFKA_HOME/bin:\$PATH
+export KAFKA_DATADIR=${KAFKA_DATADIR}
+export KAFKA_SERVER_CONF=${KAFKA_SERVER_CONF}
+EOF
+
+# Configure Kafka
+############################################################
+echo "kafka_exogeni_postboot: configuring Kafka"
+
+KAFKA_SERVER_CONF=${KAFKA_HOME}/config/server.properties
+mkdir --parents ${KAFKA_DATADIR}
+
+# The id of the broker. This must be set to a unique integer for each broker.
+if [[ $self.Name() == kafka0 ]]
+then
+  sed --in-place '/broker.id=0/s/0/0/' ${KAFKA_SERVER_CONF}
+elif [[ $self.Name() == kafka1 ]]
+then
+  sed --in-place '/broker.id=0/s/0/1/' ${KAFKA_SERVER_CONF}
+elif [[ $self.Name() == kafka2 ]]
+then
+  sed --in-place '/broker.id=0/s/0/2/' ${KAFKA_SERVER_CONF}
+fi
+
+# Zookeeper connection string (see zookeeper docs for details).
+sed --in-place '/zookeeper.connect=localhost:2181/s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/' ${KAFKA_SERVER_CONF}
+
+# A comma seperated list of directories under which to store log files
+sed --in-place "\|log.dirs=/tmp/kafka-logs|s|/tmp/kafka-logs|${KAFKA_DATADIR}|" ${KAFKA_SERVER_CONF}
+
+# The default number of log partitions per topic.
+sed --in-place '/num.partitions=1/s/1/1/' ${KAFKA_SERVER_CONF}
+
+# Start Kafka
+############################################################
+if [[ $self.Name() == kafka0 ]] || [[ $self.Name() == kafka1 ]] || [[ $self.Name() == kafka2 ]]
+then
+  # Need to wait for Zookeeper quorum before starting Kafka
+  echo "kafka_exogeni_postboot: detecting Zookeeper quorum..."
+  until ${ZOOKEEPER_HOME}/bin/zkServer.sh status ; do sleep 2; done
+
+  echo "kafka_exogeni_postboot: starting Kafka"
+  ${KAFKA_HOME}/bin/kafka-server-start.sh -daemon ${KAFKA_SERVER_CONF}
+fi
+
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#Centos+6.9+v1.0.2"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka0-ip-172-16-100-2">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.2</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#kafka0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka0"/>
+    <topology:hasGUID>b7bfb0e5-cb43-450b-bbd1-72c99d8d1db6</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+KAFKA_VERSION=1.0.0
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
+
+# setup /etc/hosts
+############################################################
+echo $kafka0.IP("VLAN0") $kafka0.Name() &gt;&gt; /etc/hosts
+echo $kafka1.IP("VLAN0") $kafka1.Name() &gt;&gt; /etc/hosts
+echo $kafka2.IP("VLAN0") $kafka2.Name() &gt;&gt; /etc/hosts
+echo $kafka0.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $kafka1.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $kafka2.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+yum --assumeyes update # disabled only during testing. should be enabled in production
+yum install --assumeyes wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables --flush; iptables --delete-chain; iptables --zero
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables --append INPUT --in-interface lo --jump ACCEPT
+iptables --append INPUT --destination 127.0.0.0/8 --jump REJECT
+#Block some common attacks:
+iptables --append INPUT --protocol tcp ! --syn -m state --state NEW --jump DROP
+iptables --append INPUT --protocol tcp --tcp-flags ALL NONE --jump DROP
+iptables --append INPUT --protocol tcp --tcp-flags ALL ALL --jump DROP
+#Accept all established inbound connections:
+iptables --append INPUT -m state --state ESTABLISHED,RELATED --jump ACCEPT
+#Allow SSH connections:
+iptables --append INPUT --protocol tcp --dport 22 --jump ACCEPT
+
+# Allow internal cluster connections
+iptables --append INPUT --in-interface eth1 --jump ACCEPT
+
+#Node specific iptables config
+
+
+# complete the iptables config
+#set the default policies:
+iptables --policy INPUT DROP
+iptables --policy OUTPUT ACCEPT
+iptables --policy FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+
+############################################################
+# ZooKeeper
+# https://zookeeper.apache.org/doc/r3.4.6/zookeeperStarted.html
+############################################################
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+
+# Install ZooKeeper
+############################################################
+mkdir --parents ${ZOOKEEPER_HOME}
+echo "kafka_exogeni_postboot: downloading ZooKeeper"
+
+wget --no-verbose --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://www.apache.org/dyn/closer.cgi?action=download&amp;filename=/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar --directory=/opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=${ZOOKEEPER_HOME}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+export ZOOKEEPER_DATADIR=${ZOOKEEPER_DATADIR}
+EOF
+
+# Configure ZooKeeper
+############################################################
+mkdir --parents ${ZOOKEEPER_DATADIR}
+echo "kafka_exogeni_postboot: configuring ZooKeeper"
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == kafka0 ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == kafka1 ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == kafka2 ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == kafka0 ]] || [[ $self.Name() == kafka1 ]] || [[ $self.Name() == kafka2 ]]
+then
+  echo "kafka_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Kafka
+# Assumes cluster has already been configured for Zookeeper
+# https://kafka.apache.org/quickstart
+############################################################
+export KAFKA_HOME=/opt/kafka_2.11-${KAFKA_VERSION}
+export KAFKA_DATADIR=/var/lib/kafka/
+export KAFKA_SERVER_CONF=${KAFKA_HOME}/config/server.properties
+
+# Install Kafka
+############################################################
+mkdir --parents ${KAFKA_HOME}
+echo "kafka_exogeni_postboot: downloading Kafka"
+
+curl --location --insecure --show-error "https://www.apache.org/dyn/closer.cgi?action=download&amp;filename=/kafka/${KAFKA_VERSION}/kafka_2.11-${KAFKA_VERSION}.tgz" &gt; /opt/kafka_2.11-${KAFKA_VERSION}.tgz
+tar --directory=/opt/kafka_2.11-${KAFKA_VERSION} --extract --file /opt/kafka_2.11-${KAFKA_VERSION}.tgz --strip-components=1
+rm --force /opt/kafka_2.11-${KAFKA_VERSION}.tgz*
+
+cat &gt; /etc/profile.d/kafka.sh &lt;&lt; EOF
+export KAFKA_HOME=${KAFKA_HOME}
+#export PATH=\$KAFKA_HOME/bin:\$PATH
+export KAFKA_DATADIR=${KAFKA_DATADIR}
+export KAFKA_SERVER_CONF=${KAFKA_SERVER_CONF}
+EOF
+
+# Configure Kafka
+############################################################
+echo "kafka_exogeni_postboot: configuring Kafka"
+
+KAFKA_SERVER_CONF=${KAFKA_HOME}/config/server.properties
+mkdir --parents ${KAFKA_DATADIR}
+
+# The id of the broker. This must be set to a unique integer for each broker.
+if [[ $self.Name() == kafka0 ]]
+then
+  sed --in-place '/broker.id=0/s/0/0/' ${KAFKA_SERVER_CONF}
+elif [[ $self.Name() == kafka1 ]]
+then
+  sed --in-place '/broker.id=0/s/0/1/' ${KAFKA_SERVER_CONF}
+elif [[ $self.Name() == kafka2 ]]
+then
+  sed --in-place '/broker.id=0/s/0/2/' ${KAFKA_SERVER_CONF}
+fi
+
+# Zookeeper connection string (see zookeeper docs for details).
+sed --in-place '/zookeeper.connect=localhost:2181/s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/' ${KAFKA_SERVER_CONF}
+
+# A comma seperated list of directories under which to store log files
+sed --in-place "\|log.dirs=/tmp/kafka-logs|s|/tmp/kafka-logs|${KAFKA_DATADIR}|" ${KAFKA_SERVER_CONF}
+
+# The default number of log partitions per topic.
+sed --in-place '/num.partitions=1/s/1/1/' ${KAFKA_SERVER_CONF}
+
+# Start Kafka
+############################################################
+if [[ $self.Name() == kafka0 ]] || [[ $self.Name() == kafka1 ]] || [[ $self.Name() == kafka2 ]]
+then
+  # Need to wait for Zookeeper quorum before starting Kafka
+  echo "kafka_exogeni_postboot: detecting Zookeeper quorum..."
+  until ${ZOOKEEPER_HOME}/bin/zkServer.sh status ; do sleep 2; done
+
+  echo "kafka_exogeni_postboot: starting Kafka"
+  ${KAFKA_HOME}/bin/kafka-server-start.sh -daemon ${KAFKA_SERVER_CONF}
+fi
+
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#Centos+6.9+v1.0.2"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#kafka2">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka2"/>
+    <topology:hasGUID>178a8da0-ce78-4132-9276-c313eeab47f5</topology:hasGUID>
+    <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+
+
+ZOOKEEPER_VERSION=zookeeper-3.4.6
+KAFKA_VERSION=1.0.0
+
+# Velocity Hacks
+#set( $bash_var = '${' )
+#set( $bash_str_split = '#* ' )
+############################################################
+
+# setup /etc/hosts
+############################################################
+echo $kafka0.IP("VLAN0") $kafka0.Name() &gt;&gt; /etc/hosts
+echo $kafka1.IP("VLAN0") $kafka1.Name() &gt;&gt; /etc/hosts
+echo $kafka2.IP("VLAN0") $kafka2.Name() &gt;&gt; /etc/hosts
+echo $kafka0.IP("VLAN0") zoo1 &gt;&gt; /etc/hosts
+echo $kafka1.IP("VLAN0") zoo2 &gt;&gt; /etc/hosts
+echo $kafka2.IP("VLAN0") zoo3 &gt;&gt; /etc/hosts
+
+echo `echo $self.Name() | sed 's/\//-/g'` &gt; /etc/hostname
+/bin/hostname -F /etc/hostname
+
+# Install Java
+############################################################
+yum makecache fast
+yum --assumeyes update # disabled only during testing. should be enabled in production
+yum install --assumeyes wget java-1.8.0-openjdk-devel
+
+export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
+
+cat &gt; /etc/profile.d/java.sh &lt;&lt; EOF
+export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
+export PATH=\$JAVA_HOME/bin:\$PATH
+EOF
+
+
+# Configure iptables for Hadoop (Centos 6)
+############################################################
+# https://www.vultr.com/docs/setup-iptables-firewall-on-centos-6
+iptables --flush; iptables --delete-chain; iptables --zero
+#Allow all loopback (lo) traffic and drop all traffic to 127.0.0.0/8 other than lo:
+iptables --append INPUT --in-interface lo --jump ACCEPT
+iptables --append INPUT --destination 127.0.0.0/8 --jump REJECT
+#Block some common attacks:
+iptables --append INPUT --protocol tcp ! --syn -m state --state NEW --jump DROP
+iptables --append INPUT --protocol tcp --tcp-flags ALL NONE --jump DROP
+iptables --append INPUT --protocol tcp --tcp-flags ALL ALL --jump DROP
+#Accept all established inbound connections:
+iptables --append INPUT -m state --state ESTABLISHED,RELATED --jump ACCEPT
+#Allow SSH connections:
+iptables --append INPUT --protocol tcp --dport 22 --jump ACCEPT
+
+# Allow internal cluster connections
+iptables --append INPUT --in-interface eth1 --jump ACCEPT
+
+#Node specific iptables config
+
+
+# complete the iptables config
+#set the default policies:
+iptables --policy INPUT DROP
+iptables --policy OUTPUT ACCEPT
+iptables --policy FORWARD DROP
+#Save the iptables configuration with the following command:
+service iptables save
+
+
+############################################################
+# ZooKeeper
+# https://zookeeper.apache.org/doc/r3.4.6/zookeeperStarted.html
+############################################################
+
+export ZOOKEEPER_HOME=/opt/${ZOOKEEPER_VERSION}
+export ZOOKEEPER_DATADIR=/var/lib/zookeeper/
+
+# Install ZooKeeper
+############################################################
+mkdir --parents ${ZOOKEEPER_HOME}
+echo "kafka_exogeni_postboot: downloading ZooKeeper"
+
+wget --no-verbose --output-document=/opt/${ZOOKEEPER_VERSION}.tgz https://www.apache.org/dyn/closer.cgi?action=download&amp;filename=/zookeeper/${ZOOKEEPER_VERSION}/${ZOOKEEPER_VERSION}.tar.gz
+tar --directory=/opt --extract --file /opt/${ZOOKEEPER_VERSION}.tgz
+rm /opt/${ZOOKEEPER_VERSION}.tgz*
+
+cat &gt; /etc/profile.d/zookeeper.sh &lt;&lt; EOF
+export ZOOKEEPER_HOME=${ZOOKEEPER_HOME}
+export ZOO_DATADIR_AUTOCREATE_DISABLE=1
+export PATH=\$ZOOKEEPER_HOME/bin:\$PATH
+export ZOOKEEPER_DATADIR=${ZOOKEEPER_DATADIR}
+EOF
+
+# Configure ZooKeeper
+############################################################
+mkdir --parents ${ZOOKEEPER_DATADIR}
+echo "kafka_exogeni_postboot: configuring ZooKeeper"
+
+cat &gt; ${ZOOKEEPER_HOME}/conf/zoo.cfg &lt;&lt; EOF
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+dataDir=${ZOOKEEPER_DATADIR}
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+EOF
+
+if [[ $self.Name() == kafka0 ]]
+then
+  echo 1 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == kafka1 ]]
+then
+  echo 2 &gt; ${ZOOKEEPER_DATADIR}/myid
+elif [[ $self.Name() == kafka2 ]]
+then
+  echo 3 &gt; ${ZOOKEEPER_DATADIR}/myid
+fi
+
+# Start ZooKeeper
+############################################################
+if [[ $self.Name() == kafka0 ]] || [[ $self.Name() == kafka1 ]] || [[ $self.Name() == kafka2 ]]
+then
+  echo "kafka_exogeni_postboot: starting ZooKeeper"
+  ${ZOOKEEPER_HOME}/bin/zkServer.sh start
+fi
+
+
+############################################################
+# Kafka
+# Assumes cluster has already been configured for Zookeeper
+# https://kafka.apache.org/quickstart
+############################################################
+export KAFKA_HOME=/opt/kafka_2.11-${KAFKA_VERSION}
+export KAFKA_DATADIR=/var/lib/kafka/
+export KAFKA_SERVER_CONF=${KAFKA_HOME}/config/server.properties
+
+# Install Kafka
+############################################################
+mkdir --parents ${KAFKA_HOME}
+echo "kafka_exogeni_postboot: downloading Kafka"
+
+curl --location --insecure --show-error "https://www.apache.org/dyn/closer.cgi?action=download&amp;filename=/kafka/${KAFKA_VERSION}/kafka_2.11-${KAFKA_VERSION}.tgz" &gt; /opt/kafka_2.11-${KAFKA_VERSION}.tgz
+tar --directory=/opt/kafka_2.11-${KAFKA_VERSION} --extract --file /opt/kafka_2.11-${KAFKA_VERSION}.tgz --strip-components=1
+rm --force /opt/kafka_2.11-${KAFKA_VERSION}.tgz*
+
+cat &gt; /etc/profile.d/kafka.sh &lt;&lt; EOF
+export KAFKA_HOME=${KAFKA_HOME}
+#export PATH=\$KAFKA_HOME/bin:\$PATH
+export KAFKA_DATADIR=${KAFKA_DATADIR}
+export KAFKA_SERVER_CONF=${KAFKA_SERVER_CONF}
+EOF
+
+# Configure Kafka
+############################################################
+echo "kafka_exogeni_postboot: configuring Kafka"
+
+KAFKA_SERVER_CONF=${KAFKA_HOME}/config/server.properties
+mkdir --parents ${KAFKA_DATADIR}
+
+# The id of the broker. This must be set to a unique integer for each broker.
+if [[ $self.Name() == kafka0 ]]
+then
+  sed --in-place '/broker.id=0/s/0/0/' ${KAFKA_SERVER_CONF}
+elif [[ $self.Name() == kafka1 ]]
+then
+  sed --in-place '/broker.id=0/s/0/1/' ${KAFKA_SERVER_CONF}
+elif [[ $self.Name() == kafka2 ]]
+then
+  sed --in-place '/broker.id=0/s/0/2/' ${KAFKA_SERVER_CONF}
+fi
+
+# Zookeeper connection string (see zookeeper docs for details).
+sed --in-place '/zookeeper.connect=localhost:2181/s/localhost:2181/zoo1:2181,zoo2:2181,zoo3:2181/' ${KAFKA_SERVER_CONF}
+
+# A comma seperated list of directories under which to store log files
+sed --in-place "\|log.dirs=/tmp/kafka-logs|s|/tmp/kafka-logs|${KAFKA_DATADIR}|" ${KAFKA_SERVER_CONF}
+
+# The default number of log partitions per topic.
+sed --in-place '/num.partitions=1/s/1/1/' ${KAFKA_SERVER_CONF}
+
+# Start Kafka
+############################################################
+if [[ $self.Name() == kafka0 ]] || [[ $self.Name() == kafka1 ]] || [[ $self.Name() == kafka2 ]]
+then
+  # Need to wait for Zookeeper quorum before starting Kafka
+  echo "kafka_exogeni_postboot: detecting Zookeeper quorum..."
+  until ${ZOOKEEPER_HOME}/bin/zkServer.sh status ; do sleep 2; done
+
+  echo "kafka_exogeni_postboot: starting Kafka"
+  ${KAFKA_HOME}/bin/kafka-server-start.sh -daemon ${KAFKA_SERVER_CONF}
+fi
+
+</request-schema:postBootScript>
+    <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#Centos+6.9+v1.0.2"/>
+    <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
+    <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/compute.owl#ComputeElement"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#">
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#kafka2"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#kafka1"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#kafka0"/>
+    <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#Term"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#TermDuration">
+    <time:days rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1</time:days>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#DurationDescription"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka2-ip-172-16-100-1">
+    <ip4:netmask>255.255.255.0</ip4:netmask>
+    <layer:label_ID>172.16.100.1</layer:label_ID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#Term">
+    <time:hasDurationDescription rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#TermDuration"/>
+    <rdf:type rdf:resource="http://www.w3.org/2006/time#Interval"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka1"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka0"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka2"/>
+    <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
+    <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
+    <topology:hasGUID>35f728ca-a7d7-4c58-b6cd-e4cadf7caa34</topology:hasGUID>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#BroadcastConnection"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka1">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka1-ip-172-16-100-3"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka0">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka0-ip-172-16-100-2"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka2">
+    <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/7f524ce3-34bf-4be2-b380-d0c00a94ba26#VLAN0-kafka2-ip-172-16-100-1"/>
+    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
+  </rdf:Description>
+</rdf:RDF>
