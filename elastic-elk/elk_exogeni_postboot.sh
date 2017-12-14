@@ -1,8 +1,6 @@
 #!/bin/bash
 
 ELASTICSEARCH_CLUSTER_NAME=exogeni-elk
-KIBANA_ADMIN_USER=${ELASTICSEARCH_CLUSTER_NAME} # for nginx
-KIBANA_ADMIN_PASS=secret # for nginx
 ELASTIC_PASSWORD=secret
 KIBANA_PASSWORD=secret
 LOGSTASH_PASSWORD=secret
@@ -46,24 +44,18 @@ systemctl start firewalld.service
 systemctl enable firewalld
 
 # Internal cluster traffic should be treated as 'trusted'
-# not sure why this command needs to be done twice.  running only once with --permanent option doesn't change the setting.
-#firewall-cmd --zone=trusted --change-interface=eth1 # only changes runtime
-firewall-cmd --zone=trusted --change-interface=eth1 --permanent # only changes saved config, not runtime
+firewall-cmd --zone=trusted --change-interface=eth1 --permanent # 'permanent' only changes saved config, not runtime
 
-# Save firewalld configuration (probably unnecessary: the '--permanent' seems like enough)
-# https://serverfault.com/questions/674874/is-there-a-way-to-run-just-save-with-firewalld-in-rhel7/674887#674887
-# firewall-cmd --runtime-to-permanent # only supported in Centos >= 7.1 # don't use if commands have been run with --permanent
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+# systemctl restart firewalld.service # do this once at the end
 
 # verify: firewall-cmd --get-active-zones
 
-# kibana will be accessed (via nginx) via port 80
+# kibana access via port 5601
 # to see details about a particular service: vi /usr/lib/firewalld/services/kibana.xml (e.g.)
-firewall-cmd --permanent --zone=public --add-service=http
 firewall-cmd --permanent --zone=public --add-service=kibana
 
-# ensure configuration is saved
-#firewall-cmd --runtime-to-permanent # only supported in Centos >= 7.1
+# restart firewalld to activate saved ('permanent') config
 systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
 
 # verify: firewall-cmd --zone public --list-all
@@ -216,7 +208,6 @@ export KIBANA_CONF=/etc/kibana/kibana.yml
 
 # Specifies the address to which the Kibana server will bind. IP addresses and host names are both valid values.
 # The default is 'localhost', which usually means remote machines will not be able to connect.
-#sed --in-place 's/#server.host: "localhost"/server.host: "localhost"/' ${KIBANA_CONF}
 sed --in-place 's/#server.host: "localhost"/server.host: "0.0.0.0"/' ${KIBANA_CONF}
 
 # X-Pack plugin sets up password authentication
@@ -232,86 +223,6 @@ echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
 systemctl start kibana
 systemctl enable kibana
 
-############################################################
-# nginx
-# Use nginx to control access to the Kibana web gui
-# https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
-#
-# TODO: Probably not necessary if X-Pack plugin is used?
-############################################################
-echo "elk_exogeni_postboot: installing nginx"
-
-yum --assumeyes install nginx httpd-tools
-
-# setup kibana user and password
-htpasswd -bc /etc/nginx/htpasswd.users ${KIBANA_ADMIN_USER} ${KIBANA_ADMIN_PASS}
-
-# Need to remove any existing 'server' sections
-cat > /etc/nginx/nginx.conf << EOF
-# For more information on configuration, see:
-#   * Official English Documentation: http://nginx.org/en/docs/
-#   * Official Russian Documentation: http://nginx.org/ru/docs/
-
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log;
-pid /run/nginx.pid;
-
-# Load dynamic modules. See /usr/share/nginx/README.dynamic.
-include /usr/share/nginx/modules/*.conf;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
-                      '\$status \$body_bytes_sent "\$http_referer" '
-                      '"\$http_user_agent" "\$http_x_forwarded_for"';
-
-    access_log  /var/log/nginx/access.log  main;
-
-    sendfile            on;
-    tcp_nopush          on;
-    tcp_nodelay         on;
-    keepalive_timeout   65;
-    types_hash_max_size 2048;
-
-    include             /etc/nginx/mime.types;
-    default_type        application/octet-stream;
-
-    # Load modular configuration files from the /etc/nginx/conf.d directory.
-    # See http://nginx.org/en/docs/ngx_core_module.html\#include
-    # for more information.
-    include /etc/nginx/conf.d/*.conf;
-
-}
-EOF
-
-# create a server block for Kibana
-cat > /etc/nginx/conf.d/kibana.conf << EOF
-server {
-    listen 80;
-
-    server_name $(neuca-get-public-ip);
-
-    auth_basic "Restricted Access";
-    auth_basic_user_file /etc/nginx/htpasswd.users;
-
-    location / {
-        proxy_pass http://localhost:5601;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;        
-    }
-}
-EOF
-
-# start and enable nginx
-systemctl start nginx
-systemctl enable nginx
 
 ############################################################
 # Logstash
