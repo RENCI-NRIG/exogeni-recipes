@@ -32,9 +32,6 @@
     <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk0-ip-172-16-100-1"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
   </rdf:Description>
-  <rdf:Description rdf:about="http://geni-orca.renci.org/owl/osfvmsite.rdf#osfvmsite/Domain">
-    <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#NetworkDomain"/>
-  </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk1">
     <ip4:localIPAddress rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk1-ip-172-16-100-2"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
@@ -49,9 +46,9 @@
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/ip4.owl#IPAddress"/>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0">
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk2"/>
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk0"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk1"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk0"/>
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0-elk2"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
     <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
     <topology:hasGUID>50613c10-7535-4517-8bcf-5218ab33851c</topology:hasGUID>
@@ -78,14 +75,38 @@
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
 
 ELASTICSEARCH_CLUSTER_NAME=exogeni-elk
-KIBANA_ADMIN_USER=${ELASTICSEARCH_CLUSTER_NAME} # for nginx
-KIBANA_ADMIN_PASS=secret # for nginx
 ELASTIC_PASSWORD=secret
 KIBANA_PASSWORD=secret
 LOGSTASH_PASSWORD=secret
 
+# CA_PASS must be exported in order for openssl command to access
+export CA_PASS=secret # Certificate Authority
+
 # Depending on the VM size, the memory available can be less than ElasticSearch is expecting
 ELASTICSEARCH_JVM_HEAP=512m
+
+# X-Pack plugin requires a license?
+# &gt; Your Trial license is active
+# &gt; Register for a Basic License. Monitoring is available for free with a Basic License. Simply register, check your inbox, and enjoy!
+# &gt; Unlock the Full Functionality. Get all X-Pack has to offer: security, monitoring, alerting, reporting, and Graph, plus support from the engineers behind the Elastic Stack.
+# &gt; Register below to receive a free 1 year Basic license, which enables many great features in X-Pack. See the subscription page for more details. And yes, when the 1 year is up, you can come back and register for another year. Happy searching!
+# https://www.elastic.co/subscriptions
+ENABLE_XPACK=true
+
+
+# same location for X-Pack and/or Nginx ??
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  #mkdir --parents /etc/elasticsearch/tls/private
+  #mkdir --parents /etc/elasticsearch/tls/certs
+
+  ELASTIC_SSL_KEY=/etc/elasticsearch/tls/private/elastic-server.key
+  ELASTIC_SSL_CERT=/etc/elasticsearch/tls/private/elastic-server.crt
+  ELASTIC_SSL_CA=/etc/elasticsearch/tls/certs/elastic-ca.crt
+else
+  ELASTIC_SSL_KEY=/etc/pki/tls/private/elastic-server.key
+  ELASTIC_SSL_CERT=/etc/pki/tls/private/elastic-server.crt
+  ELASTIC_SSL_CA=/etc/pki/tls/certs/elastic-ca.crt
+fi
 
 # Velocity Hacks
 #set( $bash_var = '${' )
@@ -115,6 +136,16 @@ export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
 export PATH=\$JAVA_HOME/bin:\$PATH
 EOF
 
+# Need to ensure lots of entropy available for generating SSL Keys
+# http://giovannitorres.me/increasing-entropy-on-virtual-machines.html
+# cat /proc/sys/kernel/random/entropy_avail 
+############################################################
+echo "elk_exogeni_postboot: enabling rng-tools"
+yum -y install rng-tools
+sed -i 's/EXTRAOPTIONS=""/EXTRAOPTIONS="-r \/dev\/urandom"/' /etc/sysconfig/rngd
+chkconfig rngd on
+service rngd start
+
 # Configure firewalld for Centos 7
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-using-firewalld-on-centos-7
 ############################################################
@@ -123,25 +154,19 @@ systemctl start firewalld.service
 systemctl enable firewalld
 
 # Internal cluster traffic should be treated as 'trusted'
-# not sure why this command needs to be done twice.  running only once with --permanent option doesn't change the setting.
-#firewall-cmd --zone=trusted --change-interface=eth1 # only changes runtime
-firewall-cmd --zone=trusted --change-interface=eth1 --permanent # only changes saved config, not runtime
+firewall-cmd --zone=trusted --change-interface=eth1 --permanent # 'permanent' only changes saved config, not runtime
 
-# Save firewalld configuration (probably unnecessary: the '--permanent' seems like enough)
-# https://serverfault.com/questions/674874/is-there-a-way-to-run-just-save-with-firewalld-in-rhel7/674887#674887
-# firewall-cmd --runtime-to-permanent # only supported in Centos &gt;= 7.1 # don't use if commands have been run with --permanent
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+# systemctl restart firewalld.service # do this once at the end
 
 # verify: firewall-cmd --get-active-zones
 
-# kibana will be accessed (via nginx) via port 80
+# kibana access via port 5601
 # to see details about a particular service: vi /usr/lib/firewalld/services/kibana.xml (e.g.)
-firewall-cmd --permanent --zone=public --add-service=http
 firewall-cmd --permanent --zone=public --add-service=kibana
 
-# ensure configuration is saved
-#firewall-cmd --runtime-to-permanent # only supported in Centos &gt;= 7.1
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+systemctl restart firewalld.service
 
 # verify: firewall-cmd --zone public --list-all
 
@@ -184,6 +209,7 @@ yum --assumeyes install elasticsearch
 export ELASTICSEARCH_CONF=/etc/elasticsearch/elasticsearch.yml
 export ELASTICSEARCH_JVM_CONF=/etc/elasticsearch/jvm.options
 
+mv ${ELASTICSEARCH_CONF} ${ELASTICSEARCH_CONF}.orig
 
 cat &gt; ${ELASTICSEARCH_CONF} &lt;&lt; EOF
 # ======================== Elasticsearch Configuration =========================
@@ -231,22 +257,18 @@ discovery.zen.ping.unicast.hosts: ["$elk0.Name()", "$elk1.Name()", "$elk2.Name()
 #
 # --------------------------------- X-Pack ----------------------------------
 #Enable Auditing to keep track of attempted and successful interactions with your Elasticsearch cluster:
-xpack.security.audit.enabled: true
+xpack.security.audit.enabled: ${ENABLE_XPACK}
+# SSL -- only if X-Pack is enabled
+xpack.ssl.key: ${ELASTIC_SSL_KEY} 
+xpack.ssl.certificate: ${ELASTIC_SSL_CERT}
+xpack.ssl.certificate_authorities: [ "${ELASTIC_SSL_CA}" ]
+#
+# Enable SSL on the transport networking layer to ensure that communication between nodes is encrypted:
+xpack.security.transport.ssl.enabled: ${ENABLE_XPACK}
+# Enable SSL on the HTTP layer to ensure that communication between HTTP clients and the cluster is encrypted:
+xpack.security.http.ssl.enabled: ${ENABLE_XPACK}
 #
 EOF
-
-# Use a descriptive name for the node:
-#sed --in-place 's/#cluster.name: my-application/cluster.name: exogeni-elk/' ${ELASTICSEARCH_CONF}
-
-# Use a descriptive name for the node:
-#sed --in-place 's/#node.name: node-1/node.name: $self.Name()/' ${ELASTICSEARCH_CONF}
-
-# Set the bind address to a specific IP (IPv4 or IPv6):
-# https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html
-#sed --in-place 's/#network.host: 192.168.0.1/network.host: [_eth0_, _eth1_, _local_]/' ${ELASTICSEARCH_CONF}
-
-# Pass an initial list of hosts to perform discovery when new node is started:
-#sed --in-place 's/#discovery.zen.ping.unicast.hosts: \["host1", "host2"\]/discovery.zen.ping.unicast.hosts: ["$elk0.Name()", "$elk1.Name()", "$elk2.Name()"]/' ${ELASTICSEARCH_CONF}
 
 # Depending on the VM size, the memory available can be less than ElasticSearch is expecting
 sed --in-place "s/-Xms2g/-Xms${ELASTICSEARCH_JVM_HEAP}/" ${ELASTICSEARCH_JVM_CONF}
@@ -254,21 +276,18 @@ sed --in-place "s/-Xmx2g/-Xmx${ELASTICSEARCH_JVM_HEAP}/" ${ELASTICSEARCH_JVM_CON
 
 # Install X-Pack plugin into ElasticSearch
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into ElasticSearch"
-/usr/share/elasticsearch/bin/elasticsearch-plugin install --batch x-pack
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into ElasticSearch"
+  /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch x-pack
+fi
 
-# Start ElasticSearch
-############################################################
-systemctl start elasticsearch
-systemctl enable elasticsearch
-
-# Verify: curl -XGET 'http://localhost:9200/_cluster/state?pretty'
 
 ############################################################
 # Kibana
 # https://www.elastic.co/guide/en/kibana/current/rpm.html
 # https://www.elastic.co/guide/en/kibana/5.6/settings.html
 # https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
+# https://www.elastic.co/guide/en/x-pack/current/kibana.html
 ############################################################
 echo "elk_exogeni_postboot: installing Kibana"
 
@@ -293,102 +312,25 @@ export KIBANA_CONF=/etc/kibana/kibana.yml
 
 # Specifies the address to which the Kibana server will bind. IP addresses and host names are both valid values.
 # The default is 'localhost', which usually means remote machines will not be able to connect.
-#sed --in-place 's/#server.host: "localhost"/server.host: "localhost"/' ${KIBANA_CONF}
 sed --in-place 's/#server.host: "localhost"/server.host: "0.0.0.0"/' ${KIBANA_CONF}
 
 # X-Pack plugin sets up password authentication
-sed --in-place "s/#elasticsearch.password: \"pass\"/elasticsearch.password: \"${ELASTIC_PASSWORD}\"/" ${KIBANA_CONF}
+sed --in-place "s/#elasticsearch.password: \"pass\"/elasticsearch.password: \"${KIBANA_PASSWORD}\"/" ${KIBANA_CONF}
+
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  # X-Pack plugin SSL/TLS
+  sed --in-place "s/#server.ssl.enabled: false/server.ssl.enabled: true/" ${KIBANA_CONF}
+  sed --in-place "s|#server.ssl.certificate: /path/to/your/server.crt|server.ssl.certificate: ${ELASTIC_SSL_CERT}|" ${KIBANA_CONF}
+  sed --in-place "s|#server.ssl.key: /path/to/your/server.key|server.ssl.key: ${ELASTIC_SSL_KEY}|" ${KIBANA_CONF}
+  sed --in-place "s|#elasticsearch.ssl.certificateAuthorities: \[ \"/path/to/your/CA.pem\" \]|elasticsearch.ssl.certificateAuthorities: [ \"${ELASTIC_SSL_CA}\" ]|" ${KIBANA_CONF}
+fi
 
 # Install X-Pack plugin into Kibana
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
-/usr/share/kibana/bin/kibana-plugin install x-pack
-
-# Start Kibana
-############################################################
-systemctl start kibana
-systemctl enable kibana
-
-############################################################
-# nginx
-# Use nginx to control access to the Kibana web gui
-# https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
-#
-# TODO: Probably not necessary if X-Pack plugin is used?
-############################################################
-echo "elk_exogeni_postboot: installing nginx"
-
-yum --assumeyes install nginx httpd-tools
-
-# setup kibana user and password
-htpasswd -bc /etc/nginx/htpasswd.users ${KIBANA_ADMIN_USER} ${KIBANA_ADMIN_PASS}
-
-# Need to remove any existing 'server' sections
-cat &gt; /etc/nginx/nginx.conf &lt;&lt; EOF
-# For more information on configuration, see:
-#   * Official English Documentation: http://nginx.org/en/docs/
-#   * Official Russian Documentation: http://nginx.org/ru/docs/
-
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log;
-pid /run/nginx.pid;
-
-# Load dynamic modules. See /usr/share/nginx/README.dynamic.
-include /usr/share/nginx/modules/*.conf;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
-                      '\$status \$body_bytes_sent "\$http_referer" '
-                      '"\$http_user_agent" "\$http_x_forwarded_for"';
-
-    access_log  /var/log/nginx/access.log  main;
-
-    sendfile            on;
-    tcp_nopush          on;
-    tcp_nodelay         on;
-    keepalive_timeout   65;
-    types_hash_max_size 2048;
-
-    include             /etc/nginx/mime.types;
-    default_type        application/octet-stream;
-
-    # Load modular configuration files from the /etc/nginx/conf.d directory.
-    # See http://nginx.org/en/docs/ngx_core_module.html\#include
-    # for more information.
-    include /etc/nginx/conf.d/*.conf;
-
-}
-EOF
-
-# create a server block for Kibana
-cat &gt; /etc/nginx/conf.d/kibana.conf &lt;&lt; EOF
-server {
-    listen 80;
-
-    server_name $(neuca-get-public-ip);
-
-    auth_basic "Restricted Access";
-    auth_basic_user_file /etc/nginx/htpasswd.users;
-
-    location / {
-        proxy_pass http://localhost:5601;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;        
-    }
-}
-EOF
-
-# start and enable nginx
-systemctl start nginx
-systemctl enable nginx
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
+  /usr/share/kibana/bin/kibana-plugin install x-pack
+fi
 
 ############################################################
 # Logstash
@@ -410,8 +352,376 @@ yum --assumeyes install logstash
 
 # Install X-Pack plugin into Logstash
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into Logstash"
-/usr/share/logstash/bin/logstash-plugin install x-pack
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into Logstash"
+  /usr/share/logstash/bin/logstash-plugin install x-pack
+fi
+
+############################################################
+# Setup SSH to be able to transfer SSL CA/cert files
+############################################################
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSH key"
+  ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa
+  cat /root/.ssh/id_rsa.pub &gt;&gt; /root/.ssh/authorized_keys
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp -u /root/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  echo "elk_exogeni_postboot: waiting to download SSH public key"
+  # Need to download SSH public key from master
+  until wget -O /root/.ssh/id_rsa.pub "http://elk0:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /root/.ssh/id_rsa.pub &gt;&gt; /root/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan elk0 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan elk1 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan elk2 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+
+# see if the script can copy private key to other nodes
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: securely transferring SSH private key"
+  until scp -o BatchMode=yes /root/.ssh/id_rsa elk1:/root/.ssh/id_rsa; do sleep 2; done
+  until scp -o BatchMode=yes /root/.ssh/id_rsa elk2:/root/.ssh/id_rsa; do sleep 2; done
+fi
+
+############################################################
+# Use 'certgen' to generate SSL CA and certs
+# https://www.elastic.co/guide/en/elasticsearch/reference/5.6/certgen.html
+# Except that's it's only included if you install X-Pack, which we probably won't want to do in the end.
+############################################################
+
+# Generate CA and SSL certs on a single node
+############################################################
+TEMP_CA_DIR=/root/ca
+TEMP_CA_CONF=${TEMP_CA_DIR}/ca.conf
+TEMP_CA_KEY=${TEMP_CA_DIR}/ca.key
+TEMP_CA_CSR=${TEMP_CA_DIR}/ca.csr
+TEMP_CA_CERT=${TEMP_CA_DIR}/ca.crt
+TEMP_CA_CRL=${TEMP_CA_DIR}/ca.crl
+
+CA_DOMAIN=recipes.exogeni.net
+CA_NAME=exogeni-recipes
+CA_CERT_C="US"
+CA_CERT_ST="North Carolina"
+CA_CERT_L="Chapel Hill"
+CA_CERT_O="EXOGENI.net"
+CA_CERT_OU="Recipes"
+CA_CERT_CN="exogeni-recipes Certificate Authority"
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSL CA"
+  mkdir ${TEMP_CA_DIR}
+  mkdir ${TEMP_CA_DIR}/db
+  mkdir ${TEMP_CA_DIR}/archive
+
+  # Create empty databases
+  touch ${TEMP_CA_DIR}/db/certificate.db
+  #touch ${TEMP_CA_DIR}/db/certificate.db.attr
+  echo 01 &gt; ${TEMP_CA_DIR}/db/crt.srl
+  echo 01 &gt; ${TEMP_CA_DIR}/db/crl.srl
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/templates/root.tpl
+cat &gt; ${TEMP_CA_CONF} &lt;&lt; EOF
+[ default ]
+ca                      = ${CA_NAME}
+domain                  = ${CA_DOMAIN}
+base_url                = http://\$domain/ca         # CA base URL
+aia_url                 = \$base_url/\$ca.crt        # CA certificate URL
+crl_url                 = \$base_url/\$ca.crl        # CRL distribution point
+name_opt                = multiline,-esc_msb,utf8    # Display UTF-8 characters
+
+[ req ]
+default_bits            = 4096                  # RSA key size
+default_days            = 3652                  # How long to certify for
+encrypt_key             = yes                   # Protect private key
+default_md              = sha256                # MD to use
+utf8                    = yes                   # Input is UTF-8
+string_mask             = utf8only              # Emit UTF-8 strings
+prompt                  = no                    # Don't prompt for DN
+distinguished_name      = ca_dn                 # DN section
+req_extensions          = ca_reqext             # Desired extensions
+
+[ ca_dn ]
+countryName             = "${CA_CERT_C}"
+stateOrProvinceName     = "${CA_CERT_ST}"
+localityName            = "${CA_CERT_L}"
+organizationName        = "${CA_CERT_O}"
+organizationalUnitName  = "${CA_CERT_OU}"
+commonName              = "${CA_CERT_CN}"
+
+[ ca_reqext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true
+subjectKeyIdentifier    = hash
+
+[ ca ]
+default_ca              = root_ca               # The default CA section
+
+[ root_ca ]
+certificate             = ${TEMP_CA_CERT}       # The CA cert
+private_key             = ${TEMP_CA_KEY}        # CA private key
+serial                  = ${TEMP_CA_DIR}/db/crt.srl         # Serial number file
+crlnumber               = ${TEMP_CA_DIR}/db/crl.srl         # CRL number file
+database                = ${TEMP_CA_DIR}/db/certificate.db  # Index file
+new_certs_dir           = ${TEMP_CA_DIR}/archive                # Certificate archive
+unique_subject          = no                    # Require unique subject
+default_md              = sha256                # MD to use
+policy                  = match_pol             # Default naming policy
+email_in_dn             = no                    # Add email to cert DN
+preserve                = no                    # Keep passed DN ordering
+name_opt                = \$name_opt            # Subject DN display options
+cert_opt                = ca_default            # Certificate display options
+copy_extensions         = copy                  # Copy extensions from CSR
+x509_extensions         = signing_ca_ext        # Default cert extensions
+default_crl_days        = 1                     # How long before next CRL
+crl_extensions          = crl_ext               # CRL extensions
+
+[ match_pol ]
+countryName             = match                 # Must match
+stateOrProvinceName     = optional              # Included if present
+localityName            = optional              # Included if present
+organizationName        = match                 # Must match
+organizationalUnitName  = optional              # Included if present
+commonName              = supplied              # Must be present
+
+# Extensions for this root CA
+[ root_ca_ext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+
+# Extensions for signing CAs issued by this root CA
+[ signing_ca_ext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true,pathlen:0
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+# Extensions for signing certs issued by this signing CA
+[ server_ext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+basicConstraints        = CA:false
+extendedKeyUsage        = serverAuth,clientAuth
+subjectKeyIdentifier    = hash
+#subjectAltName          = \$ENV::SAN
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ client_ext ]
+keyUsage                = critical,digitalSignature
+basicConstraints        = CA:false
+extendedKeyUsage        = clientAuth
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ crl_ext ]
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+
+[ issuer_info ]
+caIssuers;URI.0         = \$aia_url
+
+[ crl_info ]
+URI.0                   = \$crl_url
+EOF
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/create-root-ca
+
+  # Create the root CA key
+  openssl genrsa -out ${TEMP_CA_KEY} -passout env:CA_PASS 2048
+  chmod 0400 ${TEMP_CA_KEY}
+
+  # Create the root CA certificate
+  openssl req -new -batch \
+              -config ${TEMP_CA_CONF} \
+              -key ${TEMP_CA_KEY} \
+              -out ${TEMP_CA_CSR} \
+              -passin env:CA_PASS
+
+  # Create the signing CA certificate
+  openssl ca -selfsign -batch -notext \
+             -config ${TEMP_CA_CONF} \
+             -in ${TEMP_CA_CSR} \
+             -out ${TEMP_CA_CERT} \
+             -days 3652 \
+             -extensions root_ca_ext \
+             -passin env:CA_PASS
+
+  # Create the root CRL
+  openssl ca -gencrl -batch \
+             -config ${TEMP_CA_CONF} \
+             -out ${TEMP_CA_CRL}
+
+  # trust our new CA (might not be necessary)
+  # https://www.happyassassin.net/2015/01/14/trusting-additional-cas-in-fedora-rhel-centos-dont-append-to-etcpkitlscertsca-bundle-crt-or-etcpkitlscert-pem/
+  cp ${TEMP_CA_CERT} /etc/pki/ca-trust/source/anchors/
+  update-ca-trust
+fi
+
+# Create (signed) server certs
+############################################################
+TEMP_SERVER_CONF=${TEMP_CA_DIR}/server.conf
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSL server certs"
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/templates/server.tpl
+cat &gt; ${TEMP_SERVER_CONF} &lt;&lt; EOF
+[ default ]
+
+[ req ]
+default_bits            = 2048                  # RSA key size
+default_days            = 730                   # How long to certify for
+encrypt_key             = no                    # Protect private key
+default_md              = sha256                # MD to use
+utf8                    = yes                   # Input is UTF-8
+string_mask             = utf8only              # Emit UTF-8 strings
+prompt                  = yes                   # Prompt for DN
+distinguished_name      = server_dn             # DN template
+req_extensions          = server_reqext         # Desired extensions
+
+[ server_dn ]
+countryName			= "1. Country Name (2 letters) "
+countryName_max			= 2
+countryName_default		= ${CA_CERT_C}
+stateOrProvinceName		= "2. State or Province Name   "
+stateOrProvinceName_default	= ${CA_CERT_ST}
+localityName			= "3. Locality Name            "
+localityName_default		= ${CA_CERT_L}
+organizationName		= "4. Organization Name        "
+organizationName_default	= ${CA_CERT_O}
+organizationalUnitName		= "5. Organizational Unit Name "
+organizationalUnitName_default	= ${CA_CERT_OU}
+commonName			= "6. Common Name              "
+commonName_max			= 64
+commonName_default		= \$ENV::CN_HOSTNAME
+
+[ server_reqext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+extendedKeyUsage        = serverAuth,clientAuth
+subjectKeyIdentifier    = hash
+subjectAltName          = \$ENV::HOST_SAN
+
+EOF
+
+  # create server cert for namenode
+  for server in $elk0.Name() $elk1.Name() $elk2.Name()
+  do
+    export CN_HOSTNAME=${server}
+
+    # there must be a better way to do this part ?
+    if [[ $elk0.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk0.IP("VLAN0")"
+    elif [[ $elk1.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk1.IP("VLAN0")"
+    elif [[ $elk2.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk2.IP("VLAN0")"
+    fi
+
+    TEMP_SERVER_KEY=${TEMP_CA_DIR}/${server}.server.key
+    TEMP_SERVER_CSR=${TEMP_CA_DIR}/${server}.server.csr
+    TEMP_SERVER_CERT=${TEMP_CA_DIR}/${server}.server.crt
+    TEMP_SERVER_CRL=${TEMP_CA_DIR}/${server}.server.crl
+    #TEMP_SERVER_P12=${TEMP_CA_DIR}/${server}.server.p12
+    #TEMP_SERVER_JKS=${TEMP_CA_DIR}/${server}.server.jks
+
+    openssl req -new -batch -nodes \
+                -config ${TEMP_SERVER_CONF} \
+                -keyout ${TEMP_SERVER_KEY} \
+                -out ${TEMP_SERVER_CSR}
+    chmod 0400 ${TEMP_SERVER_KEY}
+
+    openssl ca -batch -notext \
+               -config ${TEMP_CA_CONF} \
+               -in ${TEMP_SERVER_CSR} \
+               -out ${TEMP_SERVER_CERT} \
+               -days 730 \
+               -extensions server_ext \
+               -passin env:CA_PASS
+
+  done
+
+fi
+
+# transfer SSL files to other nodes
+############################################################
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  mkdir --parents /etc/elasticsearch/tls/private
+  mkdir --parents /etc/elasticsearch/tls/certs
+
+  # kibana user needs access to elasticsearch keys
+  usermod -a -G elasticsearch kibana
+fi
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: securely transferring CA signed SSL certs to all nodes"
+
+  for server in $elk0.Name() $elk1.Name() $elk2.Name()
+  do
+
+    TEMP_SERVER_KEY=${TEMP_CA_DIR}/${server}.server.key
+    TEMP_SERVER_CERT=${TEMP_CA_DIR}/${server}.server.crt
+
+
+    # Transfer SSL files to server
+    until scp -o BatchMode=yes ${TEMP_CA_CERT}     ${server}:${ELASTIC_SSL_CA};  do sleep 2; done
+    until scp -o BatchMode=yes ${TEMP_SERVER_KEY}  ${server}:${ELASTIC_SSL_KEY}; do sleep 2; done
+    until scp -o BatchMode=yes ${TEMP_SERVER_CERT} ${server}:${ELASTIC_SSL_CERT};   do sleep 2; done
+
+  done
+
+fi
+
+# wait for SSL certs to be available before continuing
+echo "elk_exogeni_postboot: waiting for SSL certs"
+until [[ -f ${ELASTIC_SSL_KEY} ]] ; do sleep 2; done
+until [[ -f ${ELASTIC_SSL_CERT} ]] ; do sleep 2; done
+until [[ -f ${ELASTIC_SSL_CA} ]] ; do sleep 2; done
+
+for file in ${ELASTIC_SSL_KEY} ${ELASTIC_SSL_CERT} ${ELASTIC_SSL_CA}
+do
+  chown root:elasticsearch ${file}
+done
+chmod 640 ${ELASTIC_SSL_KEY}
+chmod 644 ${ELASTIC_SSL_CERT}
+chmod 644 ${ELASTIC_SSL_CA}
+
+
+
+############################################################
+# Start all of the services at the end, after full-configuration
+############################################################
+
+# Start ElasticSearch
+systemctl start elasticsearch
+systemctl enable elasticsearch
+
+# Verify: curl -XGET -u elastic:${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/state?pretty' | less
+
+# Start Kibana
+systemctl start kibana
+systemctl enable kibana
 
 # start and enable logstash
 systemctl start logstash
@@ -421,23 +731,48 @@ systemctl enable logstash
 # X-Pack Security
 # https://www.elastic.co/guide/en/x-pack/current/security-getting-started.html
 ############################################################
-echo "elk_exogeni_postboot: configuring X-Pack Security modules"
 
-# The default password for the elastic user is changeme.
-curl -XPUT -u elastic:changeme 'localhost:9200/_xpack/security/user/elastic/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${ELASTIC_PASSWORD}\"
-}"
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: waiting for ElasticSearch to be responsive..."
+  until curl -k -XGET -u elastic:changeme 'https://localhost:9200/'; do sleep 2; done
 
-curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/kibana/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${KIBANA_PASSWORD}\"
-}"
+  echo "elk_exogeni_postboot: configuring passwords for X-Pack"
 
-curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/logstash_system/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${LOGSTASH_PASSWORD}\"
-}"
+  # The default password for the elastic user is changeme.
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:changeme \
+    'https://localhost:9200/_xpack/security/user/elastic/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${ELASTIC_PASSWORD}\"
+      }"
 
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:${ELASTIC_PASSWORD} \
+    'https://localhost:9200/_xpack/security/user/kibana/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${KIBANA_PASSWORD}\"
+      }"
+
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:${ELASTIC_PASSWORD} \
+    'https://localhost:9200/_xpack/security/user/logstash_system/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${LOGSTASH_PASSWORD}\"
+      }"
+
+fi
+
+echo "elk_exogeni_postboot: DONE!"
 </request-schema:postBootScript>
-    <request-schema:inDomain rdf:resource="http://geni-orca.renci.org/owl/osfvmsite.rdf#osfvmsite/Domain"/>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#Centos+7.4+v1.0.2"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -449,14 +784,38 @@ curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/l
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
 
 ELASTICSEARCH_CLUSTER_NAME=exogeni-elk
-KIBANA_ADMIN_USER=${ELASTICSEARCH_CLUSTER_NAME} # for nginx
-KIBANA_ADMIN_PASS=secret # for nginx
 ELASTIC_PASSWORD=secret
 KIBANA_PASSWORD=secret
 LOGSTASH_PASSWORD=secret
 
+# CA_PASS must be exported in order for openssl command to access
+export CA_PASS=secret # Certificate Authority
+
 # Depending on the VM size, the memory available can be less than ElasticSearch is expecting
 ELASTICSEARCH_JVM_HEAP=512m
+
+# X-Pack plugin requires a license?
+# &gt; Your Trial license is active
+# &gt; Register for a Basic License. Monitoring is available for free with a Basic License. Simply register, check your inbox, and enjoy!
+# &gt; Unlock the Full Functionality. Get all X-Pack has to offer: security, monitoring, alerting, reporting, and Graph, plus support from the engineers behind the Elastic Stack.
+# &gt; Register below to receive a free 1 year Basic license, which enables many great features in X-Pack. See the subscription page for more details. And yes, when the 1 year is up, you can come back and register for another year. Happy searching!
+# https://www.elastic.co/subscriptions
+ENABLE_XPACK=true
+
+
+# same location for X-Pack and/or Nginx ??
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  #mkdir --parents /etc/elasticsearch/tls/private
+  #mkdir --parents /etc/elasticsearch/tls/certs
+
+  ELASTIC_SSL_KEY=/etc/elasticsearch/tls/private/elastic-server.key
+  ELASTIC_SSL_CERT=/etc/elasticsearch/tls/private/elastic-server.crt
+  ELASTIC_SSL_CA=/etc/elasticsearch/tls/certs/elastic-ca.crt
+else
+  ELASTIC_SSL_KEY=/etc/pki/tls/private/elastic-server.key
+  ELASTIC_SSL_CERT=/etc/pki/tls/private/elastic-server.crt
+  ELASTIC_SSL_CA=/etc/pki/tls/certs/elastic-ca.crt
+fi
 
 # Velocity Hacks
 #set( $bash_var = '${' )
@@ -486,6 +845,16 @@ export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
 export PATH=\$JAVA_HOME/bin:\$PATH
 EOF
 
+# Need to ensure lots of entropy available for generating SSL Keys
+# http://giovannitorres.me/increasing-entropy-on-virtual-machines.html
+# cat /proc/sys/kernel/random/entropy_avail 
+############################################################
+echo "elk_exogeni_postboot: enabling rng-tools"
+yum -y install rng-tools
+sed -i 's/EXTRAOPTIONS=""/EXTRAOPTIONS="-r \/dev\/urandom"/' /etc/sysconfig/rngd
+chkconfig rngd on
+service rngd start
+
 # Configure firewalld for Centos 7
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-using-firewalld-on-centos-7
 ############################################################
@@ -494,25 +863,19 @@ systemctl start firewalld.service
 systemctl enable firewalld
 
 # Internal cluster traffic should be treated as 'trusted'
-# not sure why this command needs to be done twice.  running only once with --permanent option doesn't change the setting.
-#firewall-cmd --zone=trusted --change-interface=eth1 # only changes runtime
-firewall-cmd --zone=trusted --change-interface=eth1 --permanent # only changes saved config, not runtime
+firewall-cmd --zone=trusted --change-interface=eth1 --permanent # 'permanent' only changes saved config, not runtime
 
-# Save firewalld configuration (probably unnecessary: the '--permanent' seems like enough)
-# https://serverfault.com/questions/674874/is-there-a-way-to-run-just-save-with-firewalld-in-rhel7/674887#674887
-# firewall-cmd --runtime-to-permanent # only supported in Centos &gt;= 7.1 # don't use if commands have been run with --permanent
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+# systemctl restart firewalld.service # do this once at the end
 
 # verify: firewall-cmd --get-active-zones
 
-# kibana will be accessed (via nginx) via port 80
+# kibana access via port 5601
 # to see details about a particular service: vi /usr/lib/firewalld/services/kibana.xml (e.g.)
-firewall-cmd --permanent --zone=public --add-service=http
 firewall-cmd --permanent --zone=public --add-service=kibana
 
-# ensure configuration is saved
-#firewall-cmd --runtime-to-permanent # only supported in Centos &gt;= 7.1
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+systemctl restart firewalld.service
 
 # verify: firewall-cmd --zone public --list-all
 
@@ -555,6 +918,7 @@ yum --assumeyes install elasticsearch
 export ELASTICSEARCH_CONF=/etc/elasticsearch/elasticsearch.yml
 export ELASTICSEARCH_JVM_CONF=/etc/elasticsearch/jvm.options
 
+mv ${ELASTICSEARCH_CONF} ${ELASTICSEARCH_CONF}.orig
 
 cat &gt; ${ELASTICSEARCH_CONF} &lt;&lt; EOF
 # ======================== Elasticsearch Configuration =========================
@@ -602,22 +966,18 @@ discovery.zen.ping.unicast.hosts: ["$elk0.Name()", "$elk1.Name()", "$elk2.Name()
 #
 # --------------------------------- X-Pack ----------------------------------
 #Enable Auditing to keep track of attempted and successful interactions with your Elasticsearch cluster:
-xpack.security.audit.enabled: true
+xpack.security.audit.enabled: ${ENABLE_XPACK}
+# SSL -- only if X-Pack is enabled
+xpack.ssl.key: ${ELASTIC_SSL_KEY} 
+xpack.ssl.certificate: ${ELASTIC_SSL_CERT}
+xpack.ssl.certificate_authorities: [ "${ELASTIC_SSL_CA}" ]
+#
+# Enable SSL on the transport networking layer to ensure that communication between nodes is encrypted:
+xpack.security.transport.ssl.enabled: ${ENABLE_XPACK}
+# Enable SSL on the HTTP layer to ensure that communication between HTTP clients and the cluster is encrypted:
+xpack.security.http.ssl.enabled: ${ENABLE_XPACK}
 #
 EOF
-
-# Use a descriptive name for the node:
-#sed --in-place 's/#cluster.name: my-application/cluster.name: exogeni-elk/' ${ELASTICSEARCH_CONF}
-
-# Use a descriptive name for the node:
-#sed --in-place 's/#node.name: node-1/node.name: $self.Name()/' ${ELASTICSEARCH_CONF}
-
-# Set the bind address to a specific IP (IPv4 or IPv6):
-# https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html
-#sed --in-place 's/#network.host: 192.168.0.1/network.host: [_eth0_, _eth1_, _local_]/' ${ELASTICSEARCH_CONF}
-
-# Pass an initial list of hosts to perform discovery when new node is started:
-#sed --in-place 's/#discovery.zen.ping.unicast.hosts: \["host1", "host2"\]/discovery.zen.ping.unicast.hosts: ["$elk0.Name()", "$elk1.Name()", "$elk2.Name()"]/' ${ELASTICSEARCH_CONF}
 
 # Depending on the VM size, the memory available can be less than ElasticSearch is expecting
 sed --in-place "s/-Xms2g/-Xms${ELASTICSEARCH_JVM_HEAP}/" ${ELASTICSEARCH_JVM_CONF}
@@ -625,21 +985,18 @@ sed --in-place "s/-Xmx2g/-Xmx${ELASTICSEARCH_JVM_HEAP}/" ${ELASTICSEARCH_JVM_CON
 
 # Install X-Pack plugin into ElasticSearch
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into ElasticSearch"
-/usr/share/elasticsearch/bin/elasticsearch-plugin install --batch x-pack
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into ElasticSearch"
+  /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch x-pack
+fi
 
-# Start ElasticSearch
-############################################################
-systemctl start elasticsearch
-systemctl enable elasticsearch
-
-# Verify: curl -XGET 'http://localhost:9200/_cluster/state?pretty'
 
 ############################################################
 # Kibana
 # https://www.elastic.co/guide/en/kibana/current/rpm.html
 # https://www.elastic.co/guide/en/kibana/5.6/settings.html
 # https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
+# https://www.elastic.co/guide/en/x-pack/current/kibana.html
 ############################################################
 echo "elk_exogeni_postboot: installing Kibana"
 
@@ -664,102 +1021,25 @@ export KIBANA_CONF=/etc/kibana/kibana.yml
 
 # Specifies the address to which the Kibana server will bind. IP addresses and host names are both valid values.
 # The default is 'localhost', which usually means remote machines will not be able to connect.
-#sed --in-place 's/#server.host: "localhost"/server.host: "localhost"/' ${KIBANA_CONF}
 sed --in-place 's/#server.host: "localhost"/server.host: "0.0.0.0"/' ${KIBANA_CONF}
 
 # X-Pack plugin sets up password authentication
-sed --in-place "s/#elasticsearch.password: \"pass\"/elasticsearch.password: \"${ELASTIC_PASSWORD}\"/" ${KIBANA_CONF}
+sed --in-place "s/#elasticsearch.password: \"pass\"/elasticsearch.password: \"${KIBANA_PASSWORD}\"/" ${KIBANA_CONF}
+
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  # X-Pack plugin SSL/TLS
+  sed --in-place "s/#server.ssl.enabled: false/server.ssl.enabled: true/" ${KIBANA_CONF}
+  sed --in-place "s|#server.ssl.certificate: /path/to/your/server.crt|server.ssl.certificate: ${ELASTIC_SSL_CERT}|" ${KIBANA_CONF}
+  sed --in-place "s|#server.ssl.key: /path/to/your/server.key|server.ssl.key: ${ELASTIC_SSL_KEY}|" ${KIBANA_CONF}
+  sed --in-place "s|#elasticsearch.ssl.certificateAuthorities: \[ \"/path/to/your/CA.pem\" \]|elasticsearch.ssl.certificateAuthorities: [ \"${ELASTIC_SSL_CA}\" ]|" ${KIBANA_CONF}
+fi
 
 # Install X-Pack plugin into Kibana
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
-/usr/share/kibana/bin/kibana-plugin install x-pack
-
-# Start Kibana
-############################################################
-systemctl start kibana
-systemctl enable kibana
-
-############################################################
-# nginx
-# Use nginx to control access to the Kibana web gui
-# https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
-#
-# TODO: Probably not necessary if X-Pack plugin is used?
-############################################################
-echo "elk_exogeni_postboot: installing nginx"
-
-yum --assumeyes install nginx httpd-tools
-
-# setup kibana user and password
-htpasswd -bc /etc/nginx/htpasswd.users ${KIBANA_ADMIN_USER} ${KIBANA_ADMIN_PASS}
-
-# Need to remove any existing 'server' sections
-cat &gt; /etc/nginx/nginx.conf &lt;&lt; EOF
-# For more information on configuration, see:
-#   * Official English Documentation: http://nginx.org/en/docs/
-#   * Official Russian Documentation: http://nginx.org/ru/docs/
-
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log;
-pid /run/nginx.pid;
-
-# Load dynamic modules. See /usr/share/nginx/README.dynamic.
-include /usr/share/nginx/modules/*.conf;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
-                      '\$status \$body_bytes_sent "\$http_referer" '
-                      '"\$http_user_agent" "\$http_x_forwarded_for"';
-
-    access_log  /var/log/nginx/access.log  main;
-
-    sendfile            on;
-    tcp_nopush          on;
-    tcp_nodelay         on;
-    keepalive_timeout   65;
-    types_hash_max_size 2048;
-
-    include             /etc/nginx/mime.types;
-    default_type        application/octet-stream;
-
-    # Load modular configuration files from the /etc/nginx/conf.d directory.
-    # See http://nginx.org/en/docs/ngx_core_module.html\#include
-    # for more information.
-    include /etc/nginx/conf.d/*.conf;
-
-}
-EOF
-
-# create a server block for Kibana
-cat &gt; /etc/nginx/conf.d/kibana.conf &lt;&lt; EOF
-server {
-    listen 80;
-
-    server_name $(neuca-get-public-ip);
-
-    auth_basic "Restricted Access";
-    auth_basic_user_file /etc/nginx/htpasswd.users;
-
-    location / {
-        proxy_pass http://localhost:5601;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;        
-    }
-}
-EOF
-
-# start and enable nginx
-systemctl start nginx
-systemctl enable nginx
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
+  /usr/share/kibana/bin/kibana-plugin install x-pack
+fi
 
 ############################################################
 # Logstash
@@ -781,8 +1061,376 @@ yum --assumeyes install logstash
 
 # Install X-Pack plugin into Logstash
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into Logstash"
-/usr/share/logstash/bin/logstash-plugin install x-pack
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into Logstash"
+  /usr/share/logstash/bin/logstash-plugin install x-pack
+fi
+
+############################################################
+# Setup SSH to be able to transfer SSL CA/cert files
+############################################################
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSH key"
+  ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa
+  cat /root/.ssh/id_rsa.pub &gt;&gt; /root/.ssh/authorized_keys
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp -u /root/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  echo "elk_exogeni_postboot: waiting to download SSH public key"
+  # Need to download SSH public key from master
+  until wget -O /root/.ssh/id_rsa.pub "http://elk0:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /root/.ssh/id_rsa.pub &gt;&gt; /root/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan elk0 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan elk1 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan elk2 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+
+# see if the script can copy private key to other nodes
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: securely transferring SSH private key"
+  until scp -o BatchMode=yes /root/.ssh/id_rsa elk1:/root/.ssh/id_rsa; do sleep 2; done
+  until scp -o BatchMode=yes /root/.ssh/id_rsa elk2:/root/.ssh/id_rsa; do sleep 2; done
+fi
+
+############################################################
+# Use 'certgen' to generate SSL CA and certs
+# https://www.elastic.co/guide/en/elasticsearch/reference/5.6/certgen.html
+# Except that's it's only included if you install X-Pack, which we probably won't want to do in the end.
+############################################################
+
+# Generate CA and SSL certs on a single node
+############################################################
+TEMP_CA_DIR=/root/ca
+TEMP_CA_CONF=${TEMP_CA_DIR}/ca.conf
+TEMP_CA_KEY=${TEMP_CA_DIR}/ca.key
+TEMP_CA_CSR=${TEMP_CA_DIR}/ca.csr
+TEMP_CA_CERT=${TEMP_CA_DIR}/ca.crt
+TEMP_CA_CRL=${TEMP_CA_DIR}/ca.crl
+
+CA_DOMAIN=recipes.exogeni.net
+CA_NAME=exogeni-recipes
+CA_CERT_C="US"
+CA_CERT_ST="North Carolina"
+CA_CERT_L="Chapel Hill"
+CA_CERT_O="EXOGENI.net"
+CA_CERT_OU="Recipes"
+CA_CERT_CN="exogeni-recipes Certificate Authority"
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSL CA"
+  mkdir ${TEMP_CA_DIR}
+  mkdir ${TEMP_CA_DIR}/db
+  mkdir ${TEMP_CA_DIR}/archive
+
+  # Create empty databases
+  touch ${TEMP_CA_DIR}/db/certificate.db
+  #touch ${TEMP_CA_DIR}/db/certificate.db.attr
+  echo 01 &gt; ${TEMP_CA_DIR}/db/crt.srl
+  echo 01 &gt; ${TEMP_CA_DIR}/db/crl.srl
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/templates/root.tpl
+cat &gt; ${TEMP_CA_CONF} &lt;&lt; EOF
+[ default ]
+ca                      = ${CA_NAME}
+domain                  = ${CA_DOMAIN}
+base_url                = http://\$domain/ca         # CA base URL
+aia_url                 = \$base_url/\$ca.crt        # CA certificate URL
+crl_url                 = \$base_url/\$ca.crl        # CRL distribution point
+name_opt                = multiline,-esc_msb,utf8    # Display UTF-8 characters
+
+[ req ]
+default_bits            = 4096                  # RSA key size
+default_days            = 3652                  # How long to certify for
+encrypt_key             = yes                   # Protect private key
+default_md              = sha256                # MD to use
+utf8                    = yes                   # Input is UTF-8
+string_mask             = utf8only              # Emit UTF-8 strings
+prompt                  = no                    # Don't prompt for DN
+distinguished_name      = ca_dn                 # DN section
+req_extensions          = ca_reqext             # Desired extensions
+
+[ ca_dn ]
+countryName             = "${CA_CERT_C}"
+stateOrProvinceName     = "${CA_CERT_ST}"
+localityName            = "${CA_CERT_L}"
+organizationName        = "${CA_CERT_O}"
+organizationalUnitName  = "${CA_CERT_OU}"
+commonName              = "${CA_CERT_CN}"
+
+[ ca_reqext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true
+subjectKeyIdentifier    = hash
+
+[ ca ]
+default_ca              = root_ca               # The default CA section
+
+[ root_ca ]
+certificate             = ${TEMP_CA_CERT}       # The CA cert
+private_key             = ${TEMP_CA_KEY}        # CA private key
+serial                  = ${TEMP_CA_DIR}/db/crt.srl         # Serial number file
+crlnumber               = ${TEMP_CA_DIR}/db/crl.srl         # CRL number file
+database                = ${TEMP_CA_DIR}/db/certificate.db  # Index file
+new_certs_dir           = ${TEMP_CA_DIR}/archive                # Certificate archive
+unique_subject          = no                    # Require unique subject
+default_md              = sha256                # MD to use
+policy                  = match_pol             # Default naming policy
+email_in_dn             = no                    # Add email to cert DN
+preserve                = no                    # Keep passed DN ordering
+name_opt                = \$name_opt            # Subject DN display options
+cert_opt                = ca_default            # Certificate display options
+copy_extensions         = copy                  # Copy extensions from CSR
+x509_extensions         = signing_ca_ext        # Default cert extensions
+default_crl_days        = 1                     # How long before next CRL
+crl_extensions          = crl_ext               # CRL extensions
+
+[ match_pol ]
+countryName             = match                 # Must match
+stateOrProvinceName     = optional              # Included if present
+localityName            = optional              # Included if present
+organizationName        = match                 # Must match
+organizationalUnitName  = optional              # Included if present
+commonName              = supplied              # Must be present
+
+# Extensions for this root CA
+[ root_ca_ext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+
+# Extensions for signing CAs issued by this root CA
+[ signing_ca_ext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true,pathlen:0
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+# Extensions for signing certs issued by this signing CA
+[ server_ext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+basicConstraints        = CA:false
+extendedKeyUsage        = serverAuth,clientAuth
+subjectKeyIdentifier    = hash
+#subjectAltName          = \$ENV::SAN
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ client_ext ]
+keyUsage                = critical,digitalSignature
+basicConstraints        = CA:false
+extendedKeyUsage        = clientAuth
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ crl_ext ]
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+
+[ issuer_info ]
+caIssuers;URI.0         = \$aia_url
+
+[ crl_info ]
+URI.0                   = \$crl_url
+EOF
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/create-root-ca
+
+  # Create the root CA key
+  openssl genrsa -out ${TEMP_CA_KEY} -passout env:CA_PASS 2048
+  chmod 0400 ${TEMP_CA_KEY}
+
+  # Create the root CA certificate
+  openssl req -new -batch \
+              -config ${TEMP_CA_CONF} \
+              -key ${TEMP_CA_KEY} \
+              -out ${TEMP_CA_CSR} \
+              -passin env:CA_PASS
+
+  # Create the signing CA certificate
+  openssl ca -selfsign -batch -notext \
+             -config ${TEMP_CA_CONF} \
+             -in ${TEMP_CA_CSR} \
+             -out ${TEMP_CA_CERT} \
+             -days 3652 \
+             -extensions root_ca_ext \
+             -passin env:CA_PASS
+
+  # Create the root CRL
+  openssl ca -gencrl -batch \
+             -config ${TEMP_CA_CONF} \
+             -out ${TEMP_CA_CRL}
+
+  # trust our new CA (might not be necessary)
+  # https://www.happyassassin.net/2015/01/14/trusting-additional-cas-in-fedora-rhel-centos-dont-append-to-etcpkitlscertsca-bundle-crt-or-etcpkitlscert-pem/
+  cp ${TEMP_CA_CERT} /etc/pki/ca-trust/source/anchors/
+  update-ca-trust
+fi
+
+# Create (signed) server certs
+############################################################
+TEMP_SERVER_CONF=${TEMP_CA_DIR}/server.conf
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSL server certs"
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/templates/server.tpl
+cat &gt; ${TEMP_SERVER_CONF} &lt;&lt; EOF
+[ default ]
+
+[ req ]
+default_bits            = 2048                  # RSA key size
+default_days            = 730                   # How long to certify for
+encrypt_key             = no                    # Protect private key
+default_md              = sha256                # MD to use
+utf8                    = yes                   # Input is UTF-8
+string_mask             = utf8only              # Emit UTF-8 strings
+prompt                  = yes                   # Prompt for DN
+distinguished_name      = server_dn             # DN template
+req_extensions          = server_reqext         # Desired extensions
+
+[ server_dn ]
+countryName			= "1. Country Name (2 letters) "
+countryName_max			= 2
+countryName_default		= ${CA_CERT_C}
+stateOrProvinceName		= "2. State or Province Name   "
+stateOrProvinceName_default	= ${CA_CERT_ST}
+localityName			= "3. Locality Name            "
+localityName_default		= ${CA_CERT_L}
+organizationName		= "4. Organization Name        "
+organizationName_default	= ${CA_CERT_O}
+organizationalUnitName		= "5. Organizational Unit Name "
+organizationalUnitName_default	= ${CA_CERT_OU}
+commonName			= "6. Common Name              "
+commonName_max			= 64
+commonName_default		= \$ENV::CN_HOSTNAME
+
+[ server_reqext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+extendedKeyUsage        = serverAuth,clientAuth
+subjectKeyIdentifier    = hash
+subjectAltName          = \$ENV::HOST_SAN
+
+EOF
+
+  # create server cert for namenode
+  for server in $elk0.Name() $elk1.Name() $elk2.Name()
+  do
+    export CN_HOSTNAME=${server}
+
+    # there must be a better way to do this part ?
+    if [[ $elk0.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk0.IP("VLAN0")"
+    elif [[ $elk1.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk1.IP("VLAN0")"
+    elif [[ $elk2.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk2.IP("VLAN0")"
+    fi
+
+    TEMP_SERVER_KEY=${TEMP_CA_DIR}/${server}.server.key
+    TEMP_SERVER_CSR=${TEMP_CA_DIR}/${server}.server.csr
+    TEMP_SERVER_CERT=${TEMP_CA_DIR}/${server}.server.crt
+    TEMP_SERVER_CRL=${TEMP_CA_DIR}/${server}.server.crl
+    #TEMP_SERVER_P12=${TEMP_CA_DIR}/${server}.server.p12
+    #TEMP_SERVER_JKS=${TEMP_CA_DIR}/${server}.server.jks
+
+    openssl req -new -batch -nodes \
+                -config ${TEMP_SERVER_CONF} \
+                -keyout ${TEMP_SERVER_KEY} \
+                -out ${TEMP_SERVER_CSR}
+    chmod 0400 ${TEMP_SERVER_KEY}
+
+    openssl ca -batch -notext \
+               -config ${TEMP_CA_CONF} \
+               -in ${TEMP_SERVER_CSR} \
+               -out ${TEMP_SERVER_CERT} \
+               -days 730 \
+               -extensions server_ext \
+               -passin env:CA_PASS
+
+  done
+
+fi
+
+# transfer SSL files to other nodes
+############################################################
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  mkdir --parents /etc/elasticsearch/tls/private
+  mkdir --parents /etc/elasticsearch/tls/certs
+
+  # kibana user needs access to elasticsearch keys
+  usermod -a -G elasticsearch kibana
+fi
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: securely transferring CA signed SSL certs to all nodes"
+
+  for server in $elk0.Name() $elk1.Name() $elk2.Name()
+  do
+
+    TEMP_SERVER_KEY=${TEMP_CA_DIR}/${server}.server.key
+    TEMP_SERVER_CERT=${TEMP_CA_DIR}/${server}.server.crt
+
+
+    # Transfer SSL files to server
+    until scp -o BatchMode=yes ${TEMP_CA_CERT}     ${server}:${ELASTIC_SSL_CA};  do sleep 2; done
+    until scp -o BatchMode=yes ${TEMP_SERVER_KEY}  ${server}:${ELASTIC_SSL_KEY}; do sleep 2; done
+    until scp -o BatchMode=yes ${TEMP_SERVER_CERT} ${server}:${ELASTIC_SSL_CERT};   do sleep 2; done
+
+  done
+
+fi
+
+# wait for SSL certs to be available before continuing
+echo "elk_exogeni_postboot: waiting for SSL certs"
+until [[ -f ${ELASTIC_SSL_KEY} ]] ; do sleep 2; done
+until [[ -f ${ELASTIC_SSL_CERT} ]] ; do sleep 2; done
+until [[ -f ${ELASTIC_SSL_CA} ]] ; do sleep 2; done
+
+for file in ${ELASTIC_SSL_KEY} ${ELASTIC_SSL_CERT} ${ELASTIC_SSL_CA}
+do
+  chown root:elasticsearch ${file}
+done
+chmod 640 ${ELASTIC_SSL_KEY}
+chmod 644 ${ELASTIC_SSL_CERT}
+chmod 644 ${ELASTIC_SSL_CA}
+
+
+
+############################################################
+# Start all of the services at the end, after full-configuration
+############################################################
+
+# Start ElasticSearch
+systemctl start elasticsearch
+systemctl enable elasticsearch
+
+# Verify: curl -XGET -u elastic:${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/state?pretty' | less
+
+# Start Kibana
+systemctl start kibana
+systemctl enable kibana
 
 # start and enable logstash
 systemctl start logstash
@@ -792,23 +1440,48 @@ systemctl enable logstash
 # X-Pack Security
 # https://www.elastic.co/guide/en/x-pack/current/security-getting-started.html
 ############################################################
-echo "elk_exogeni_postboot: configuring X-Pack Security modules"
 
-# The default password for the elastic user is changeme.
-curl -XPUT -u elastic:changeme 'localhost:9200/_xpack/security/user/elastic/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${ELASTIC_PASSWORD}\"
-}"
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: waiting for ElasticSearch to be responsive..."
+  until curl -k -XGET -u elastic:changeme 'https://localhost:9200/'; do sleep 2; done
 
-curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/kibana/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${KIBANA_PASSWORD}\"
-}"
+  echo "elk_exogeni_postboot: configuring passwords for X-Pack"
 
-curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/logstash_system/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${LOGSTASH_PASSWORD}\"
-}"
+  # The default password for the elastic user is changeme.
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:changeme \
+    'https://localhost:9200/_xpack/security/user/elastic/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${ELASTIC_PASSWORD}\"
+      }"
 
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:${ELASTIC_PASSWORD} \
+    'https://localhost:9200/_xpack/security/user/kibana/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${KIBANA_PASSWORD}\"
+      }"
+
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:${ELASTIC_PASSWORD} \
+    'https://localhost:9200/_xpack/security/user/logstash_system/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${LOGSTASH_PASSWORD}\"
+      }"
+
+fi
+
+echo "elk_exogeni_postboot: DONE!"
 </request-schema:postBootScript>
-    <request-schema:inDomain rdf:resource="http://geni-orca.renci.org/owl/osfvmsite.rdf#osfvmsite/Domain"/>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#Centos+7.4+v1.0.2"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -820,14 +1493,38 @@ curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/l
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
 
 ELASTICSEARCH_CLUSTER_NAME=exogeni-elk
-KIBANA_ADMIN_USER=${ELASTICSEARCH_CLUSTER_NAME} # for nginx
-KIBANA_ADMIN_PASS=secret # for nginx
 ELASTIC_PASSWORD=secret
 KIBANA_PASSWORD=secret
 LOGSTASH_PASSWORD=secret
 
+# CA_PASS must be exported in order for openssl command to access
+export CA_PASS=secret # Certificate Authority
+
 # Depending on the VM size, the memory available can be less than ElasticSearch is expecting
 ELASTICSEARCH_JVM_HEAP=512m
+
+# X-Pack plugin requires a license?
+# &gt; Your Trial license is active
+# &gt; Register for a Basic License. Monitoring is available for free with a Basic License. Simply register, check your inbox, and enjoy!
+# &gt; Unlock the Full Functionality. Get all X-Pack has to offer: security, monitoring, alerting, reporting, and Graph, plus support from the engineers behind the Elastic Stack.
+# &gt; Register below to receive a free 1 year Basic license, which enables many great features in X-Pack. See the subscription page for more details. And yes, when the 1 year is up, you can come back and register for another year. Happy searching!
+# https://www.elastic.co/subscriptions
+ENABLE_XPACK=true
+
+
+# same location for X-Pack and/or Nginx ??
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  #mkdir --parents /etc/elasticsearch/tls/private
+  #mkdir --parents /etc/elasticsearch/tls/certs
+
+  ELASTIC_SSL_KEY=/etc/elasticsearch/tls/private/elastic-server.key
+  ELASTIC_SSL_CERT=/etc/elasticsearch/tls/private/elastic-server.crt
+  ELASTIC_SSL_CA=/etc/elasticsearch/tls/certs/elastic-ca.crt
+else
+  ELASTIC_SSL_KEY=/etc/pki/tls/private/elastic-server.key
+  ELASTIC_SSL_CERT=/etc/pki/tls/private/elastic-server.crt
+  ELASTIC_SSL_CA=/etc/pki/tls/certs/elastic-ca.crt
+fi
 
 # Velocity Hacks
 #set( $bash_var = '${' )
@@ -857,6 +1554,16 @@ export JAVA_HOME=$(readlink --canonicalize /usr/bin/java | sed "s:/bin/java::")
 export PATH=\$JAVA_HOME/bin:\$PATH
 EOF
 
+# Need to ensure lots of entropy available for generating SSL Keys
+# http://giovannitorres.me/increasing-entropy-on-virtual-machines.html
+# cat /proc/sys/kernel/random/entropy_avail 
+############################################################
+echo "elk_exogeni_postboot: enabling rng-tools"
+yum -y install rng-tools
+sed -i 's/EXTRAOPTIONS=""/EXTRAOPTIONS="-r \/dev\/urandom"/' /etc/sysconfig/rngd
+chkconfig rngd on
+service rngd start
+
 # Configure firewalld for Centos 7
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-using-firewalld-on-centos-7
 ############################################################
@@ -865,25 +1572,19 @@ systemctl start firewalld.service
 systemctl enable firewalld
 
 # Internal cluster traffic should be treated as 'trusted'
-# not sure why this command needs to be done twice.  running only once with --permanent option doesn't change the setting.
-#firewall-cmd --zone=trusted --change-interface=eth1 # only changes runtime
-firewall-cmd --zone=trusted --change-interface=eth1 --permanent # only changes saved config, not runtime
+firewall-cmd --zone=trusted --change-interface=eth1 --permanent # 'permanent' only changes saved config, not runtime
 
-# Save firewalld configuration (probably unnecessary: the '--permanent' seems like enough)
-# https://serverfault.com/questions/674874/is-there-a-way-to-run-just-save-with-firewalld-in-rhel7/674887#674887
-# firewall-cmd --runtime-to-permanent # only supported in Centos &gt;= 7.1 # don't use if commands have been run with --permanent
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+# systemctl restart firewalld.service # do this once at the end
 
 # verify: firewall-cmd --get-active-zones
 
-# kibana will be accessed (via nginx) via port 80
+# kibana access via port 5601
 # to see details about a particular service: vi /usr/lib/firewalld/services/kibana.xml (e.g.)
-firewall-cmd --permanent --zone=public --add-service=http
 firewall-cmd --permanent --zone=public --add-service=kibana
 
-# ensure configuration is saved
-#firewall-cmd --runtime-to-permanent # only supported in Centos &gt;= 7.1
-systemctl restart firewalld.service # might be necessary after the '--runtime-to-permanent' command
+# restart firewalld to activate saved ('permanent') config
+systemctl restart firewalld.service
 
 # verify: firewall-cmd --zone public --list-all
 
@@ -926,6 +1627,7 @@ yum --assumeyes install elasticsearch
 export ELASTICSEARCH_CONF=/etc/elasticsearch/elasticsearch.yml
 export ELASTICSEARCH_JVM_CONF=/etc/elasticsearch/jvm.options
 
+mv ${ELASTICSEARCH_CONF} ${ELASTICSEARCH_CONF}.orig
 
 cat &gt; ${ELASTICSEARCH_CONF} &lt;&lt; EOF
 # ======================== Elasticsearch Configuration =========================
@@ -973,22 +1675,18 @@ discovery.zen.ping.unicast.hosts: ["$elk0.Name()", "$elk1.Name()", "$elk2.Name()
 #
 # --------------------------------- X-Pack ----------------------------------
 #Enable Auditing to keep track of attempted and successful interactions with your Elasticsearch cluster:
-xpack.security.audit.enabled: true
+xpack.security.audit.enabled: ${ENABLE_XPACK}
+# SSL -- only if X-Pack is enabled
+xpack.ssl.key: ${ELASTIC_SSL_KEY} 
+xpack.ssl.certificate: ${ELASTIC_SSL_CERT}
+xpack.ssl.certificate_authorities: [ "${ELASTIC_SSL_CA}" ]
+#
+# Enable SSL on the transport networking layer to ensure that communication between nodes is encrypted:
+xpack.security.transport.ssl.enabled: ${ENABLE_XPACK}
+# Enable SSL on the HTTP layer to ensure that communication between HTTP clients and the cluster is encrypted:
+xpack.security.http.ssl.enabled: ${ENABLE_XPACK}
 #
 EOF
-
-# Use a descriptive name for the node:
-#sed --in-place 's/#cluster.name: my-application/cluster.name: exogeni-elk/' ${ELASTICSEARCH_CONF}
-
-# Use a descriptive name for the node:
-#sed --in-place 's/#node.name: node-1/node.name: $self.Name()/' ${ELASTICSEARCH_CONF}
-
-# Set the bind address to a specific IP (IPv4 or IPv6):
-# https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html
-#sed --in-place 's/#network.host: 192.168.0.1/network.host: [_eth0_, _eth1_, _local_]/' ${ELASTICSEARCH_CONF}
-
-# Pass an initial list of hosts to perform discovery when new node is started:
-#sed --in-place 's/#discovery.zen.ping.unicast.hosts: \["host1", "host2"\]/discovery.zen.ping.unicast.hosts: ["$elk0.Name()", "$elk1.Name()", "$elk2.Name()"]/' ${ELASTICSEARCH_CONF}
 
 # Depending on the VM size, the memory available can be less than ElasticSearch is expecting
 sed --in-place "s/-Xms2g/-Xms${ELASTICSEARCH_JVM_HEAP}/" ${ELASTICSEARCH_JVM_CONF}
@@ -996,21 +1694,18 @@ sed --in-place "s/-Xmx2g/-Xmx${ELASTICSEARCH_JVM_HEAP}/" ${ELASTICSEARCH_JVM_CON
 
 # Install X-Pack plugin into ElasticSearch
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into ElasticSearch"
-/usr/share/elasticsearch/bin/elasticsearch-plugin install --batch x-pack
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into ElasticSearch"
+  /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch x-pack
+fi
 
-# Start ElasticSearch
-############################################################
-systemctl start elasticsearch
-systemctl enable elasticsearch
-
-# Verify: curl -XGET 'http://localhost:9200/_cluster/state?pretty'
 
 ############################################################
 # Kibana
 # https://www.elastic.co/guide/en/kibana/current/rpm.html
 # https://www.elastic.co/guide/en/kibana/5.6/settings.html
 # https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
+# https://www.elastic.co/guide/en/x-pack/current/kibana.html
 ############################################################
 echo "elk_exogeni_postboot: installing Kibana"
 
@@ -1035,102 +1730,25 @@ export KIBANA_CONF=/etc/kibana/kibana.yml
 
 # Specifies the address to which the Kibana server will bind. IP addresses and host names are both valid values.
 # The default is 'localhost', which usually means remote machines will not be able to connect.
-#sed --in-place 's/#server.host: "localhost"/server.host: "localhost"/' ${KIBANA_CONF}
 sed --in-place 's/#server.host: "localhost"/server.host: "0.0.0.0"/' ${KIBANA_CONF}
 
 # X-Pack plugin sets up password authentication
-sed --in-place "s/#elasticsearch.password: \"pass\"/elasticsearch.password: \"${ELASTIC_PASSWORD}\"/" ${KIBANA_CONF}
+sed --in-place "s/#elasticsearch.password: \"pass\"/elasticsearch.password: \"${KIBANA_PASSWORD}\"/" ${KIBANA_CONF}
+
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  # X-Pack plugin SSL/TLS
+  sed --in-place "s/#server.ssl.enabled: false/server.ssl.enabled: true/" ${KIBANA_CONF}
+  sed --in-place "s|#server.ssl.certificate: /path/to/your/server.crt|server.ssl.certificate: ${ELASTIC_SSL_CERT}|" ${KIBANA_CONF}
+  sed --in-place "s|#server.ssl.key: /path/to/your/server.key|server.ssl.key: ${ELASTIC_SSL_KEY}|" ${KIBANA_CONF}
+  sed --in-place "s|#elasticsearch.ssl.certificateAuthorities: \[ \"/path/to/your/CA.pem\" \]|elasticsearch.ssl.certificateAuthorities: [ \"${ELASTIC_SSL_CA}\" ]|" ${KIBANA_CONF}
+fi
 
 # Install X-Pack plugin into Kibana
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
-/usr/share/kibana/bin/kibana-plugin install x-pack
-
-# Start Kibana
-############################################################
-systemctl start kibana
-systemctl enable kibana
-
-############################################################
-# nginx
-# Use nginx to control access to the Kibana web gui
-# https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-centos-7
-#
-# TODO: Probably not necessary if X-Pack plugin is used?
-############################################################
-echo "elk_exogeni_postboot: installing nginx"
-
-yum --assumeyes install nginx httpd-tools
-
-# setup kibana user and password
-htpasswd -bc /etc/nginx/htpasswd.users ${KIBANA_ADMIN_USER} ${KIBANA_ADMIN_PASS}
-
-# Need to remove any existing 'server' sections
-cat &gt; /etc/nginx/nginx.conf &lt;&lt; EOF
-# For more information on configuration, see:
-#   * Official English Documentation: http://nginx.org/en/docs/
-#   * Official Russian Documentation: http://nginx.org/ru/docs/
-
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log;
-pid /run/nginx.pid;
-
-# Load dynamic modules. See /usr/share/nginx/README.dynamic.
-include /usr/share/nginx/modules/*.conf;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
-                      '\$status \$body_bytes_sent "\$http_referer" '
-                      '"\$http_user_agent" "\$http_x_forwarded_for"';
-
-    access_log  /var/log/nginx/access.log  main;
-
-    sendfile            on;
-    tcp_nopush          on;
-    tcp_nodelay         on;
-    keepalive_timeout   65;
-    types_hash_max_size 2048;
-
-    include             /etc/nginx/mime.types;
-    default_type        application/octet-stream;
-
-    # Load modular configuration files from the /etc/nginx/conf.d directory.
-    # See http://nginx.org/en/docs/ngx_core_module.html\#include
-    # for more information.
-    include /etc/nginx/conf.d/*.conf;
-
-}
-EOF
-
-# create a server block for Kibana
-cat &gt; /etc/nginx/conf.d/kibana.conf &lt;&lt; EOF
-server {
-    listen 80;
-
-    server_name $(neuca-get-public-ip);
-
-    auth_basic "Restricted Access";
-    auth_basic_user_file /etc/nginx/htpasswd.users;
-
-    location / {
-        proxy_pass http://localhost:5601;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;        
-    }
-}
-EOF
-
-# start and enable nginx
-systemctl start nginx
-systemctl enable nginx
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into Kibana (can be slow)"
+  /usr/share/kibana/bin/kibana-plugin install x-pack
+fi
 
 ############################################################
 # Logstash
@@ -1152,8 +1770,376 @@ yum --assumeyes install logstash
 
 # Install X-Pack plugin into Logstash
 ############################################################
-echo "elk_exogeni_postboot: installing X-Pack plugin into Logstash"
-/usr/share/logstash/bin/logstash-plugin install x-pack
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: installing X-Pack plugin into Logstash"
+  /usr/share/logstash/bin/logstash-plugin install x-pack
+fi
+
+############################################################
+# Setup SSH to be able to transfer SSL CA/cert files
+############################################################
+
+# Namenode will generate private SSH key
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSH key"
+  ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa
+  cat /root/.ssh/id_rsa.pub &gt;&gt; /root/.ssh/authorized_keys
+  # allow cluster to download SSH public key
+  # port is only accessible to internal cluster
+  mkdir /public_html
+  cp -u /root/.ssh/id_rsa.pub /public_html/
+  (cd /public_html; python -c 'import SimpleHTTPServer,BaseHTTPServer; BaseHTTPServer.HTTPServer(("", 8080), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()') &amp;
+else
+  echo "elk_exogeni_postboot: waiting to download SSH public key"
+  # Need to download SSH public key from master
+  until wget -O /root/.ssh/id_rsa.pub "http://elk0:8080/id_rsa.pub"
+  do
+    sleep 2
+  done
+  cat /root/.ssh/id_rsa.pub &gt;&gt; /root/.ssh/authorized_keys
+fi
+
+# Add host RSA keys to SSH known hosts files
+# Need to wait until these succeed
+until ssh-keyscan elk0 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan elk1 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+until ssh-keyscan elk2 &gt;&gt; /root/.ssh/known_hosts; do sleep 2; done
+
+# see if the script can copy private key to other nodes
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: securely transferring SSH private key"
+  until scp -o BatchMode=yes /root/.ssh/id_rsa elk1:/root/.ssh/id_rsa; do sleep 2; done
+  until scp -o BatchMode=yes /root/.ssh/id_rsa elk2:/root/.ssh/id_rsa; do sleep 2; done
+fi
+
+############################################################
+# Use 'certgen' to generate SSL CA and certs
+# https://www.elastic.co/guide/en/elasticsearch/reference/5.6/certgen.html
+# Except that's it's only included if you install X-Pack, which we probably won't want to do in the end.
+############################################################
+
+# Generate CA and SSL certs on a single node
+############################################################
+TEMP_CA_DIR=/root/ca
+TEMP_CA_CONF=${TEMP_CA_DIR}/ca.conf
+TEMP_CA_KEY=${TEMP_CA_DIR}/ca.key
+TEMP_CA_CSR=${TEMP_CA_DIR}/ca.csr
+TEMP_CA_CERT=${TEMP_CA_DIR}/ca.crt
+TEMP_CA_CRL=${TEMP_CA_DIR}/ca.crl
+
+CA_DOMAIN=recipes.exogeni.net
+CA_NAME=exogeni-recipes
+CA_CERT_C="US"
+CA_CERT_ST="North Carolina"
+CA_CERT_L="Chapel Hill"
+CA_CERT_O="EXOGENI.net"
+CA_CERT_OU="Recipes"
+CA_CERT_CN="exogeni-recipes Certificate Authority"
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSL CA"
+  mkdir ${TEMP_CA_DIR}
+  mkdir ${TEMP_CA_DIR}/db
+  mkdir ${TEMP_CA_DIR}/archive
+
+  # Create empty databases
+  touch ${TEMP_CA_DIR}/db/certificate.db
+  #touch ${TEMP_CA_DIR}/db/certificate.db.attr
+  echo 01 &gt; ${TEMP_CA_DIR}/db/crt.srl
+  echo 01 &gt; ${TEMP_CA_DIR}/db/crl.srl
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/templates/root.tpl
+cat &gt; ${TEMP_CA_CONF} &lt;&lt; EOF
+[ default ]
+ca                      = ${CA_NAME}
+domain                  = ${CA_DOMAIN}
+base_url                = http://\$domain/ca         # CA base URL
+aia_url                 = \$base_url/\$ca.crt        # CA certificate URL
+crl_url                 = \$base_url/\$ca.crl        # CRL distribution point
+name_opt                = multiline,-esc_msb,utf8    # Display UTF-8 characters
+
+[ req ]
+default_bits            = 4096                  # RSA key size
+default_days            = 3652                  # How long to certify for
+encrypt_key             = yes                   # Protect private key
+default_md              = sha256                # MD to use
+utf8                    = yes                   # Input is UTF-8
+string_mask             = utf8only              # Emit UTF-8 strings
+prompt                  = no                    # Don't prompt for DN
+distinguished_name      = ca_dn                 # DN section
+req_extensions          = ca_reqext             # Desired extensions
+
+[ ca_dn ]
+countryName             = "${CA_CERT_C}"
+stateOrProvinceName     = "${CA_CERT_ST}"
+localityName            = "${CA_CERT_L}"
+organizationName        = "${CA_CERT_O}"
+organizationalUnitName  = "${CA_CERT_OU}"
+commonName              = "${CA_CERT_CN}"
+
+[ ca_reqext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true
+subjectKeyIdentifier    = hash
+
+[ ca ]
+default_ca              = root_ca               # The default CA section
+
+[ root_ca ]
+certificate             = ${TEMP_CA_CERT}       # The CA cert
+private_key             = ${TEMP_CA_KEY}        # CA private key
+serial                  = ${TEMP_CA_DIR}/db/crt.srl         # Serial number file
+crlnumber               = ${TEMP_CA_DIR}/db/crl.srl         # CRL number file
+database                = ${TEMP_CA_DIR}/db/certificate.db  # Index file
+new_certs_dir           = ${TEMP_CA_DIR}/archive                # Certificate archive
+unique_subject          = no                    # Require unique subject
+default_md              = sha256                # MD to use
+policy                  = match_pol             # Default naming policy
+email_in_dn             = no                    # Add email to cert DN
+preserve                = no                    # Keep passed DN ordering
+name_opt                = \$name_opt            # Subject DN display options
+cert_opt                = ca_default            # Certificate display options
+copy_extensions         = copy                  # Copy extensions from CSR
+x509_extensions         = signing_ca_ext        # Default cert extensions
+default_crl_days        = 1                     # How long before next CRL
+crl_extensions          = crl_ext               # CRL extensions
+
+[ match_pol ]
+countryName             = match                 # Must match
+stateOrProvinceName     = optional              # Included if present
+localityName            = optional              # Included if present
+organizationName        = match                 # Must match
+organizationalUnitName  = optional              # Included if present
+commonName              = supplied              # Must be present
+
+# Extensions for this root CA
+[ root_ca_ext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+
+# Extensions for signing CAs issued by this root CA
+[ signing_ca_ext ]
+keyUsage                = critical,keyCertSign,cRLSign
+basicConstraints        = critical,CA:true,pathlen:0
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+# Extensions for signing certs issued by this signing CA
+[ server_ext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+basicConstraints        = CA:false
+extendedKeyUsage        = serverAuth,clientAuth
+subjectKeyIdentifier    = hash
+#subjectAltName          = \$ENV::SAN
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ client_ext ]
+keyUsage                = critical,digitalSignature
+basicConstraints        = CA:false
+extendedKeyUsage        = clientAuth
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ crl_ext ]
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+
+[ issuer_info ]
+caIssuers;URI.0         = \$aia_url
+
+[ crl_info ]
+URI.0                   = \$crl_url
+EOF
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/create-root-ca
+
+  # Create the root CA key
+  openssl genrsa -out ${TEMP_CA_KEY} -passout env:CA_PASS 2048
+  chmod 0400 ${TEMP_CA_KEY}
+
+  # Create the root CA certificate
+  openssl req -new -batch \
+              -config ${TEMP_CA_CONF} \
+              -key ${TEMP_CA_KEY} \
+              -out ${TEMP_CA_CSR} \
+              -passin env:CA_PASS
+
+  # Create the signing CA certificate
+  openssl ca -selfsign -batch -notext \
+             -config ${TEMP_CA_CONF} \
+             -in ${TEMP_CA_CSR} \
+             -out ${TEMP_CA_CERT} \
+             -days 3652 \
+             -extensions root_ca_ext \
+             -passin env:CA_PASS
+
+  # Create the root CRL
+  openssl ca -gencrl -batch \
+             -config ${TEMP_CA_CONF} \
+             -out ${TEMP_CA_CRL}
+
+  # trust our new CA (might not be necessary)
+  # https://www.happyassassin.net/2015/01/14/trusting-additional-cas-in-fedora-rhel-centos-dont-append-to-etcpkitlscertsca-bundle-crt-or-etcpkitlscert-pem/
+  cp ${TEMP_CA_CERT} /etc/pki/ca-trust/source/anchors/
+  update-ca-trust
+fi
+
+# Create (signed) server certs
+############################################################
+TEMP_SERVER_CONF=${TEMP_CA_DIR}/server.conf
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: generating SSL server certs"
+
+  # https://github.com/redredgroovy/easy-ca/blob/master/templates/server.tpl
+cat &gt; ${TEMP_SERVER_CONF} &lt;&lt; EOF
+[ default ]
+
+[ req ]
+default_bits            = 2048                  # RSA key size
+default_days            = 730                   # How long to certify for
+encrypt_key             = no                    # Protect private key
+default_md              = sha256                # MD to use
+utf8                    = yes                   # Input is UTF-8
+string_mask             = utf8only              # Emit UTF-8 strings
+prompt                  = yes                   # Prompt for DN
+distinguished_name      = server_dn             # DN template
+req_extensions          = server_reqext         # Desired extensions
+
+[ server_dn ]
+countryName			= "1. Country Name (2 letters) "
+countryName_max			= 2
+countryName_default		= ${CA_CERT_C}
+stateOrProvinceName		= "2. State or Province Name   "
+stateOrProvinceName_default	= ${CA_CERT_ST}
+localityName			= "3. Locality Name            "
+localityName_default		= ${CA_CERT_L}
+organizationName		= "4. Organization Name        "
+organizationName_default	= ${CA_CERT_O}
+organizationalUnitName		= "5. Organizational Unit Name "
+organizationalUnitName_default	= ${CA_CERT_OU}
+commonName			= "6. Common Name              "
+commonName_max			= 64
+commonName_default		= \$ENV::CN_HOSTNAME
+
+[ server_reqext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+extendedKeyUsage        = serverAuth,clientAuth
+subjectKeyIdentifier    = hash
+subjectAltName          = \$ENV::HOST_SAN
+
+EOF
+
+  # create server cert for namenode
+  for server in $elk0.Name() $elk1.Name() $elk2.Name()
+  do
+    export CN_HOSTNAME=${server}
+
+    # there must be a better way to do this part ?
+    if [[ $elk0.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk0.IP("VLAN0")"
+    elif [[ $elk1.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk1.IP("VLAN0")"
+    elif [[ $elk2.Name() == ${server} ]]; then
+      export HOST_SAN="IP:$elk2.IP("VLAN0")"
+    fi
+
+    TEMP_SERVER_KEY=${TEMP_CA_DIR}/${server}.server.key
+    TEMP_SERVER_CSR=${TEMP_CA_DIR}/${server}.server.csr
+    TEMP_SERVER_CERT=${TEMP_CA_DIR}/${server}.server.crt
+    TEMP_SERVER_CRL=${TEMP_CA_DIR}/${server}.server.crl
+    #TEMP_SERVER_P12=${TEMP_CA_DIR}/${server}.server.p12
+    #TEMP_SERVER_JKS=${TEMP_CA_DIR}/${server}.server.jks
+
+    openssl req -new -batch -nodes \
+                -config ${TEMP_SERVER_CONF} \
+                -keyout ${TEMP_SERVER_KEY} \
+                -out ${TEMP_SERVER_CSR}
+    chmod 0400 ${TEMP_SERVER_KEY}
+
+    openssl ca -batch -notext \
+               -config ${TEMP_CA_CONF} \
+               -in ${TEMP_SERVER_CSR} \
+               -out ${TEMP_SERVER_CERT} \
+               -days 730 \
+               -extensions server_ext \
+               -passin env:CA_PASS
+
+  done
+
+fi
+
+# transfer SSL files to other nodes
+############################################################
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  mkdir --parents /etc/elasticsearch/tls/private
+  mkdir --parents /etc/elasticsearch/tls/certs
+
+  # kibana user needs access to elasticsearch keys
+  usermod -a -G elasticsearch kibana
+fi
+
+if [[ $self.Name() == elk0 ]]
+then
+  echo "elk_exogeni_postboot: securely transferring CA signed SSL certs to all nodes"
+
+  for server in $elk0.Name() $elk1.Name() $elk2.Name()
+  do
+
+    TEMP_SERVER_KEY=${TEMP_CA_DIR}/${server}.server.key
+    TEMP_SERVER_CERT=${TEMP_CA_DIR}/${server}.server.crt
+
+
+    # Transfer SSL files to server
+    until scp -o BatchMode=yes ${TEMP_CA_CERT}     ${server}:${ELASTIC_SSL_CA};  do sleep 2; done
+    until scp -o BatchMode=yes ${TEMP_SERVER_KEY}  ${server}:${ELASTIC_SSL_KEY}; do sleep 2; done
+    until scp -o BatchMode=yes ${TEMP_SERVER_CERT} ${server}:${ELASTIC_SSL_CERT};   do sleep 2; done
+
+  done
+
+fi
+
+# wait for SSL certs to be available before continuing
+echo "elk_exogeni_postboot: waiting for SSL certs"
+until [[ -f ${ELASTIC_SSL_KEY} ]] ; do sleep 2; done
+until [[ -f ${ELASTIC_SSL_CERT} ]] ; do sleep 2; done
+until [[ -f ${ELASTIC_SSL_CA} ]] ; do sleep 2; done
+
+for file in ${ELASTIC_SSL_KEY} ${ELASTIC_SSL_CERT} ${ELASTIC_SSL_CA}
+do
+  chown root:elasticsearch ${file}
+done
+chmod 640 ${ELASTIC_SSL_KEY}
+chmod 644 ${ELASTIC_SSL_CERT}
+chmod 644 ${ELASTIC_SSL_CA}
+
+
+
+############################################################
+# Start all of the services at the end, after full-configuration
+############################################################
+
+# Start ElasticSearch
+systemctl start elasticsearch
+systemctl enable elasticsearch
+
+# Verify: curl -XGET -u elastic:${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/state?pretty' | less
+
+# Start Kibana
+systemctl start kibana
+systemctl enable kibana
 
 # start and enable logstash
 systemctl start logstash
@@ -1163,23 +2149,48 @@ systemctl enable logstash
 # X-Pack Security
 # https://www.elastic.co/guide/en/x-pack/current/security-getting-started.html
 ############################################################
-echo "elk_exogeni_postboot: configuring X-Pack Security modules"
 
-# The default password for the elastic user is changeme.
-curl -XPUT -u elastic:changeme 'localhost:9200/_xpack/security/user/elastic/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${ELASTIC_PASSWORD}\"
-}"
+if [[ "${ENABLE_XPACK}" = true ]]; then
+  echo "elk_exogeni_postboot: waiting for ElasticSearch to be responsive..."
+  until curl -k -XGET -u elastic:changeme 'https://localhost:9200/'; do sleep 2; done
 
-curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/kibana/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${KIBANA_PASSWORD}\"
-}"
+  echo "elk_exogeni_postboot: configuring passwords for X-Pack"
 
-curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/logstash_system/_password' -H "Content-Type: application/json" -d "{
-  \"password\" : \"${LOGSTASH_PASSWORD}\"
-}"
+  # The default password for the elastic user is changeme.
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:changeme \
+    'https://localhost:9200/_xpack/security/user/elastic/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${ELASTIC_PASSWORD}\"
+      }"
 
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:${ELASTIC_PASSWORD} \
+    'https://localhost:9200/_xpack/security/user/kibana/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${KIBANA_PASSWORD}\"
+      }"
+
+  curl \
+    --insecure \
+    -XPUT \
+    --user elastic:${ELASTIC_PASSWORD} \
+    'https://localhost:9200/_xpack/security/user/logstash_system/_password' \
+    --header "Content-Type: application/json" \
+    --data "{
+        \"password\" : \"${LOGSTASH_PASSWORD}\"
+      }"
+
+fi
+
+echo "elk_exogeni_postboot: DONE!"
 </request-schema:postBootScript>
-    <request-schema:inDomain rdf:resource="http://geni-orca.renci.org/owl/osfvmsite.rdf#osfvmsite/Domain"/>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#Centos+7.4+v1.0.2"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -1193,8 +2204,8 @@ curl -XPUT -u elastic:${ELASTIC_PASSWORD} 'localhost:9200/_xpack/security/user/l
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#VLAN0"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#elk1"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#elk0"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#elk2"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#elk0"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/f7b59a38-b300-4177-82a6-7ca3e042bf7d#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
   </rdf:Description>
