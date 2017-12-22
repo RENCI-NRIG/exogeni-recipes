@@ -57,6 +57,7 @@
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <topology:hasGUID>ead50214-6f76-41b4-a4a2-6dbc52fdf727</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+{
 
 ############################################################
 # Hadoop section copied from hadoop recipe:
@@ -107,6 +108,10 @@ stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/
 # stable2 should look like: link hadoop-2.7.4
 HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
+
+zoo_stable=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/zookeeper/stable)
+# zoo_stable should look like: link link zookeeper-3.4.6
+ZOOKEEPER_VERSION=${bash_var}zoo_stable${bash_str_split}}
 
 # use the suggested mirror for the actual download
 curl --location --insecure --show-error "https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&amp;filename=hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz" &gt; /opt/${HADOOP_VERSION}.tgz
@@ -517,7 +522,7 @@ then
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
-</request-schema:postBootScript>
+} &gt;&gt; /tmp/masterLog 2&gt;&amp;1</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -528,9 +533,9 @@ fi
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/topology.owl#Interface"/>
   </rdf:Description>
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0">
+    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
-    <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-NameNode"/>
     <layer:atLayer rdf:resource="http://geni-orca.renci.org/owl/ethernet.owl#EthernetNetworkElement"/>
     <layer:bandwidth rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">10000000</layer:bandwidth>
@@ -541,6 +546,7 @@ fi
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-Workers"/>
     <topology:hasGUID>ec5fac4f-2c45-4df0-839a-5f3e83ea5d76</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+{
 
 ############################################################
 # Hadoop section copied from hadoop recipe:
@@ -591,6 +597,10 @@ stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/
 # stable2 should look like: link hadoop-2.7.4
 HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
+
+zoo_stable=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/zookeeper/stable)
+# zoo_stable should look like: link link zookeeper-3.4.6
+ZOOKEEPER_VERSION=${bash_var}zoo_stable${bash_str_split}}
 
 # use the suggested mirror for the actual download
 curl --location --insecure --show-error "https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&amp;filename=hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz" &gt; /opt/${HADOOP_VERSION}.tgz
@@ -1001,7 +1011,7 @@ then
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
-</request-schema:postBootScript>
+} &gt;&gt; /tmp/masterLog 2&gt;&amp;1</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -1013,6 +1023,7 @@ fi
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-ResourceManager"/>
     <topology:hasGUID>a1063815-e4f9-47cb-aab8-53f20d45396e</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+{
 
 ############################################################
 # Hadoop section copied from hadoop recipe:
@@ -1063,6 +1074,10 @@ stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/
 # stable2 should look like: link hadoop-2.7.4
 HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
+
+zoo_stable=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/zookeeper/stable)
+# zoo_stable should look like: link link zookeeper-3.4.6
+ZOOKEEPER_VERSION=${bash_var}zoo_stable${bash_str_split}}
 
 # use the suggested mirror for the actual download
 curl --location --insecure --show-error "https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&amp;filename=hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz" &gt; /opt/${HADOOP_VERSION}.tgz
@@ -1473,7 +1488,7 @@ then
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
-</request-schema:postBootScript>
+} &gt;&gt; /tmp/masterLog 2&gt;&amp;1</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -1483,6 +1498,7 @@ fi
     <topology:hasInterface rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0-AccumuloMaster"/>
     <topology:hasGUID>397c96f1-e659-4fb5-b4f9-b190053e9ebd</topology:hasGUID>
     <request-schema:postBootScript rdf:datatype="http://www.w3.org/2001/XMLSchema#string">#!/bin/bash
+{
 
 ############################################################
 # Hadoop section copied from hadoop recipe:
@@ -1533,6 +1549,10 @@ stable2=$(curl --location --insecure --show-error https://dist.apache.org/repos/
 # stable2 should look like: link hadoop-2.7.4
 HADOOP_VERSION=${bash_var}stable2${bash_str_split}}
 mkdir -p /opt/${HADOOP_VERSION}
+
+zoo_stable=$(curl --location --insecure --show-error https://dist.apache.org/repos/dist/release/zookeeper/stable)
+# zoo_stable should look like: link link zookeeper-3.4.6
+ZOOKEEPER_VERSION=${bash_var}zoo_stable${bash_str_split}}
 
 # use the suggested mirror for the actual download
 curl --location --insecure --show-error "https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&amp;filename=hadoop/common/${HADOOP_VERSION}/${HADOOP_VERSION}.tar.gz" &gt; /opt/${HADOOP_VERSION}.tgz
@@ -1943,7 +1963,7 @@ then
   sudo -E -u hadoop ${ACCUMULO_HOME}/bin/start-here.sh
 fi
 
-</request-schema:postBootScript>
+} &gt;&gt; /tmp/masterLog 2&gt;&amp;1</request-schema:postBootScript>
     <compute:diskImage rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Centos+6.9+v1.0.0"/>
     <compute:specificCE rdf:resource="http://geni-orca.renci.org/owl/exogeni.owl#XOMedium"/>
     <domain:hasResourceType rdf:resource="http://geni-orca.renci.org/owl/compute.owl#VM"/>
@@ -1960,8 +1980,8 @@ fi
   <rdf:Description rdf:about="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#">
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#VLAN0"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#ResourceManager"/>
-    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Workers"/>
+    <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#AccumuloMaster"/>
     <collections:element rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#NameNode"/>
     <request-schema:hasTerm rdf:resource="http://geni-orca.renci.org/owl/ea031ffb-6ad3-4373-944b-53a08be59db7#Term"/>
     <rdf:type rdf:resource="http://geni-orca.renci.org/owl/request.owl#Reservation"/>
