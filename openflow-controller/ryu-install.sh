@@ -34,6 +34,8 @@ mkdir /var/log/ryu
 chown openflow. /var/log/ryu
 
 
+# OFP_TCP_LISTEN_PORT line (below) is processed in Chameleon Heat Template for user input.
+# This line should not be modified.
 cat << EOF > /etc/sysconfig/ryu 
 RYU_PID_FILE="/var/run/ryu/ryu-manager.pid"
 RYU_LOG_FILE="/var/log/ryu/ryu-manager.log"
