@@ -1,5 +1,6 @@
 #!/bin/bash
 
+{
 
 function clean_up {
         echo "--- ERROR"
@@ -108,3 +109,4 @@ cd /opt/bro
 ./configure --prefix=/opt/bro --with-pcap=/opt/pfring
 make && make install
 
+} > /tmp/boot.log 2>&1
