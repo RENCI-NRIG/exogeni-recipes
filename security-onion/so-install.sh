@@ -24,6 +24,8 @@ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
 chmod 400 ${KEY_FILE}
 systemctl restart apache2
 
-echo "Security Onion installation is completed ..."
+sudo apt-get -y install mailutils
+
+echo "Security Onion installation is completed ..." 
 
 } > /tmp/boot.log 2>&1

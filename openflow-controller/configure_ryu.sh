@@ -20,9 +20,11 @@ pip install --upgrade --ignore-installed netaddr
 useradd openflow
 usermod -s /sbin/nologin openflow
 
+
 mkdir ${RYU_DIR} && mkdir ${RYU_DIR}/repo
 
 # Ryu Application file that is customized for Chameleon use-case
+#wget http://geni-images.renci.org/images/mcevik/openflow/ryu/simple_switch_13_custom_chameleon.py
 git clone ${CHAMELEON_RYU_URL} ${RYU_DIR}/repo
 ln -s ${RYU_DIR}/repo/ryu/app/${CHAMELEON_RYU_APP} ${RYU_DIR}/${CHAMELEON_RYU_APP}
 ln -s ${RYU_DIR}/repo/ryu/app/${RYU_REST_APP} ${RYU_DIR}/${RYU_REST_APP}
@@ -35,8 +37,6 @@ mkdir /var/log/ryu
 chown openflow. /var/log/ryu
 
 
-# OFP_TCP_LISTEN_PORT line (below) is processed in Chameleon Heat Template for user input.
-# This line should not be modified.
 cat << EOF > /etc/sysconfig/ryu 
 RYU_PID_FILE="/var/run/ryu/ryu-manager.pid"
 RYU_LOG_FILE="/var/log/ryu/ryu-manager.log"
