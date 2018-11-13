@@ -40,6 +40,8 @@ Heat template : <PLACEHOLDER for URL>
 #!/bin/bash
 sudo yum -y update
 sudo yum -y install git docker.io
+sudo systemctl restart docker
+
 
 RECIPE_REPO="https://github.com/RENCI-NRIG/exogeni-recipes.git"
 RECIPE_DIR="/opt/exogeni-recipes"
