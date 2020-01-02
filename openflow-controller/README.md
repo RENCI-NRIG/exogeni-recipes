@@ -36,25 +36,36 @@ Heat template : <PLACEHOLDER for URL>
 ### Docker
 
 ```
-
 #!/bin/bash
-sudo yum -y update
-sudo yum -y install git docker.io
-sudo systemctl restart docker
 
+yum install -y yum-utils \
+  device-mapper-persistent-data \
+  lvm2
+
+yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+
+yum install -y docker-ce
+
+systemctl enable docker
+systemctl start docker
+systemctl status docker
 
 RECIPE_REPO="https://github.com/RENCI-NRIG/exogeni-recipes.git"
 RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
+DOCKER_IMAGE="centos-ryu"
+DOCKER_CONTAINER_NAME="ryu-controller"
+
 
 git clone  --no-checkout ${RECIPE_REPO} ${RECIPE_DIR}
 cd ${RECIPE_DIR} && git config core.sparsecheckout true
 echo "${RECIPE_APP}/*" >> .git/info/sparse-checkout
 git read-tree -m -u HEAD
 
-DOCKER_IMAGE="centos-ryu"
+cd ${RECIPE_DIR}/${RECIPE_APP}
 docker build -t ${DOCKER_IMAGE} .
-docker run -dit -p 6653:6653 ${DOCKER_IMAGE}
-
+docker run --rm -dit -p 6653:6653 --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
 
 ```
