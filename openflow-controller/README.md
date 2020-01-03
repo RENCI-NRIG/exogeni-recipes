@@ -68,6 +68,6 @@ cd ${RECIPE_DIR}/${RECIPE_APP}
 docker volume create var_run_ryu
 docker volume create var_log_ryu
 docker build -t ${DOCKER_IMAGE} .
-docker run --rm -dit -p 6653:6653 -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
+docker run --rm -dit -p 6653:6653 -p 8080:8080 -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
 
 ```
