@@ -17,4 +17,5 @@ RUN git clone https://github.com/ChameleonCloud/ryu.git /opt/custom \
  && ln -s /opt/custom/ryu/app/ofctl_rest.py /opt/ofctl_rest.py
 
 COPY ryu_start.sh .
-CMD /bin/bash ryu_start.sh; /bin/bash
+RUN chmod +x /ryu_start.sh
+CMD /ryu_start.sh; /bin/bash
