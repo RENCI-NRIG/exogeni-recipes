@@ -15,6 +15,7 @@ RUN git clone git://github.com/osrg/ryu.git /opt/ryu \
 RUN git clone https://github.com/ChameleonCloud/ryu.git /opt/ryu_chameleon \
  && ln -s /opt/ryu_chameleon/ryu/app /opt/ryu_app
 
+COPY ryu.conf /opt/ryu_app/ryu.conf
 COPY ryu_start.sh .
 RUN chmod +x /ryu_start.sh
 CMD /ryu_start.sh; /bin/bash
