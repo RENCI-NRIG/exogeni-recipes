@@ -53,6 +53,9 @@ OFP_TCP_LISTEN_PORT="6653"
 RYU_APP_SIMPLE="/opt/ryu_app/simple_switch_13_custom_chameleon.py"
 RYU_APP_MIRROR="/opt/ryu_app/mirror_switch_13_chameleon.py"
 
+# OpenFlow port number of the IDS (eg. bro, security onion) instance 
+MIRROR_PORT=10137
+
 git clone  --no-checkout ${RECIPE_REPO} ${RECIPE_DIR}
 cd ${RECIPE_DIR} && git config core.sparsecheckout true
 echo "${RECIPE_APP}/*" >> .git/info/sparse-checkout
@@ -66,6 +69,7 @@ docker volume create opt_ryu_chameleon
 sed -r -i 's/^(RYU_APP=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(OFP_TCP_LISTEN_PORT=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(RYU_REST=.*)/#\1/g' ryu_start.sh
+sed -r -i "s/^(mirror_port).*/\1=${MIRROR_PORT}/g" ryu.conf
 
 docker build -t ${DOCKER_IMAGE} .
 
