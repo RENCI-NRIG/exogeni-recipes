@@ -50,8 +50,8 @@ RECIPE_APP="openflow-controller/docker"
 DOCKER_IMAGE="centos-ryu"
 DOCKER_CONTAINER_NAME="ryu-controller"
 OFP_TCP_LISTEN_PORT="6653"
-RYU_APP_SIMPLE="/opt/simple_switch_13_custom_chameleon.py"
-RYU_APP_MIRROR="/opt/mirror_switch_13_chameleon.py"
+RYU_APP_SIMPLE="/opt/ryu_app/simple_switch_13_custom_chameleon.py"
+RYU_APP_MIRROR="/opt/ryu_app/mirror_switch_13_chameleon.py"
 
 git clone  --no-checkout ${RECIPE_REPO} ${RECIPE_DIR}
 cd ${RECIPE_DIR} && git config core.sparsecheckout true
@@ -65,6 +65,7 @@ docker volume create opt_ryu
 docker volume create opt_custom
 sed -r -i 's/^(RYU_APP=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(OFP_TCP_LISTEN_PORT=.*)/#\1/g' ryu_start.sh
+sed -r -i 's/^(RYU_REST=.*)/#\1/g' ryu_start.sh
 
 docker build -t ${DOCKER_IMAGE} .
 
@@ -82,7 +83,7 @@ docker stop $DOCKER_CONTAINER_NAME
 
 RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
-RYU_APP_MIRROR="/opt/mirror_switch_13_chameleon.py"
+RYU_APP_MIRROR="/opt/ryu_app/mirror_switch_13_chameleon.py"
 OFP_TCP_LISTEN_PORT="6653"
 
 cd ${RECIPE_DIR}/${RECIPE_APP}
