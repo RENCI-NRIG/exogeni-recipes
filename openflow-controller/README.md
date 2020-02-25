@@ -77,7 +77,7 @@ docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:80
 Rebuild container and start ryu-controller with mirror-switch application
 
 ```
-docker stop $DOCKER_IMAGE
+docker stop $DOCKER_CONTAINER_NAME
 
 RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
