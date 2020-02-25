@@ -52,6 +52,7 @@ DOCKER_CONTAINER_NAME="ryu-controller"
 OFP_TCP_LISTEN_PORT="6653"
 RYU_APP_SIMPLE="/opt/ryu_app/simple_switch_13_custom_chameleon.py"
 RYU_APP_MIRROR="/opt/ryu_app/mirror_switch_13_chameleon.py"
+RYU_CONFIG="/opt/ryu_app/ryu.conf"
 
 # OpenFlow port number of the IDS (eg. bro, security onion) instance 
 MIRROR_PORT=10137
@@ -69,12 +70,13 @@ docker volume create opt_ryu_chameleon
 sed -r -i 's/^(RYU_APP=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(OFP_TCP_LISTEN_PORT=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(RYU_REST=.*)/#\1/g' ryu_start.sh
+sed -r -i 's/^(RYU_CONFIG=.*)/#\1/g' ryu_start.sh
 sed -r -i "s/^(mirror_port).*/\1=${MIRROR_PORT}/g" ryu.conf
 
 docker build -t ${DOCKER_IMAGE} .
 
 RYU_APP=${RYU_APP_SIMPLE}
-docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_ryu_chameleon:/opt/ryu_chameleon -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
+docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_ryu_chameleon:/opt/ryu_chameleon -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e RYU_CONFIG=${RYU_CONFIG} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
 
 ```
 
