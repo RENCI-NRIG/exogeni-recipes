@@ -76,10 +76,15 @@ docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:80
 Rebuild container and start ryu-controller with mirror-switch application
 
 ```
+DOCKER_CONTAINER_NAME="ryu-controller"
+DOCKER_IMAGE="centos-ryu"
 docker stop $DOCKER_CONTAINER_NAME
 
 RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
+RYU_APP_MIRROR="/opt/mirror_switch_13_chameleon.py"
+OFP_TCP_LISTEN_PORT="6653"
+
 cd ${RECIPE_DIR}/${RECIPE_APP}
 RYU_APP=${RYU_APP_MIRROR}
 docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_custom:/opt/custom -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
