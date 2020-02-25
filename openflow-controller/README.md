@@ -84,3 +84,5 @@ cd ${RECIPE_DIR}/${RECIPE_APP}
 RYU_APP=${RYU_APP_MIRROR}
 docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_custom:/opt/custom -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
 ```
+Physical directories that are mapped to volumes are located at `/var/lib/docker/volumes/<VOLUME_NAME>/_data`
+Ryu log file can be accessed from the base OS at `/var/lib/docker/volumes/var_log_ryu/_data/ryu-manager.log`
