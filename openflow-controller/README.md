@@ -47,8 +47,7 @@ systemctl start docker
 RECIPE_REPO="https://github.com/RENCI-NRIG/exogeni-recipes.git"
 RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
-DOCKER_IMAGE_SIMPLE_SWITCH="centos-ryu-simple"
-DOCKER_IMAGE_MIRROR_SWITCH="centos-ryu-mirror"
+DOCKER_IMAGE="centos-ryu"
 DOCKER_CONTAINER_NAME="ryu-controller"
 OFP_TCP_LISTEN_PORT="6653"
 RYU_APP_SIMPLE="/opt/simple_switch_13_custom_chameleon.py"
@@ -67,9 +66,9 @@ docker volume create opt_custom
 sed -r -i 's/^(RYU_APP=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(OFP_TCP_LISTEN_PORT=.*)/#\1/g' ryu_start.sh
 
-DOCKER_IMAGE=${DOCKER_IMAGE_SIMPLE_SWITCH}
-RYU_APP=${RYU_APP_SIMPLE}
 docker build -t ${DOCKER_IMAGE} .
+
+RYU_APP=${RYU_APP_SIMPLE}
 docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_custom:/opt/custom -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
 
 ```
@@ -82,9 +81,6 @@ docker stop $DOCKER_CONTAINER_NAME
 RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
 cd ${RECIPE_DIR}/${RECIPE_APP}
-DOCKER_IMAGE=${DOCKER_IMAGE_MIRROR_SWITCH}
 RYU_APP=${RYU_APP_MIRROR}
-docker build -t ${DOCKER_IMAGE} .
 docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_custom:/opt/custom -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
-
 ```
