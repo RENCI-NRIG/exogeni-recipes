@@ -56,6 +56,8 @@ RYU_CONFIG="/opt/ryu_app/ryu.conf"
 
 # OpenFlow port number of the IDS (eg. bro, security onion) instance 
 MIRROR_PORT=10137
+MIRROR_DPID=139037276331851
+
 
 git clone  --no-checkout ${RECIPE_REPO} ${RECIPE_DIR}
 cd ${RECIPE_DIR} && git config core.sparsecheckout true
@@ -72,6 +74,8 @@ sed -r -i 's/^(OFP_TCP_LISTEN_PORT=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(RYU_REST=.*)/#\1/g' ryu_start.sh
 sed -r -i 's/^(RYU_CONFIG=.*)/#\1/g' ryu_start.sh
 sed -r -i "s/^(mirror_port).*/\1=${MIRROR_PORT}/g" ryu.conf
+sed -r -i "s/^(mirror_dpid).*/\1=${MIRROR_DPID}/g" ryu.conf
+
 
 docker build -t ${DOCKER_IMAGE} .
 
