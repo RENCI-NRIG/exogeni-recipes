@@ -95,6 +95,9 @@ RECIPE_DIR="/opt/exogeni-recipes"
 RECIPE_APP="openflow-controller/docker"
 RYU_APP_MIRROR="/opt/ryu_app/mirror_switch_13_chameleon.py"
 OFP_TCP_LISTEN_PORT="6653"
+# OpenFlow port number of the IDS (eg. bro, security onion) instance 
+MIRROR_PORT=10110
+MIRROR_DPID=139037276331851
 
 cd ${RECIPE_DIR}/${RECIPE_APP}
 RYU_APP=${RYU_APP_MIRROR}
