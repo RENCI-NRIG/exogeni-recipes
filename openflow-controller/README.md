@@ -104,6 +104,7 @@ RYU_APP=${RYU_APP_MIRROR}
 RYU_CONFIG="/opt/ryu_app/ryu.conf"
 sed -r -i "s/^(mirror_port).*/\1=${MIRROR_PORT}/g" ryu.conf
 sed -r -i "s/^(mirror_dpid).*/\1=${MIRROR_DPID}/g" ryu.conf
+docker build -t ${DOCKER_IMAGE} .
 
 docker run --rm -dit -p ${OFP_TCP_LISTEN_PORT}:${OFP_TCP_LISTEN_PORT} -p 8080:8080 -v opt_ryu_chameleon:/opt/ryu_chameleon -v opt_ryu:/opt/ryu -v var_log_ryu:/var/log/ryu -v var_run_ryu:/var/run/ryu -e RYU_APP=${RYU_APP} -e RYU_CONFIG=${RYU_CONFIG} -e OFP_TCP_LISTEN_PORT=${OFP_TCP_LISTEN_PORT}  --name=${DOCKER_CONTAINER_NAME} ${DOCKER_IMAGE}
 ```
