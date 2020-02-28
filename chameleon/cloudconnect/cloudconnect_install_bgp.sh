@@ -14,8 +14,8 @@ systemctl enable docker
 systemctl start docker
 systemctl status docker
 
-mkdir corsa_cra
-cd corsa_cra/ 
+mkdir ~/corsa_cra
+cd ~/corsa_cra/ 
 git init 
 git config core.sparsecheckout true 
 echo corsa_cra/corsa_cra/* >> .git/info/sparse-checkout 
