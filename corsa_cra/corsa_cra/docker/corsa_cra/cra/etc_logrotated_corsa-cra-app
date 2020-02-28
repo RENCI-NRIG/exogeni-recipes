@@ -1,0 +1,10 @@
+/var/log/corsa-cra/app.log {
+        rotate 4
+        weekly
+        minsize 1M
+        missingok
+        copytruncate
+        notifempty
+        compress
+        delaycompress
+}
