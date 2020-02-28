@@ -27,7 +27,7 @@ cd ~/corsa_cra/corsa_cra/corsa_cra/docker/
 
 # Modify corsa_cra/quagga/bgpd.conf
 
-export LOCAL_ASN="65010"
+export LOCAL_ASN="65015"
 export LOCAL_ROUTER_IP="172.16.100.1"
 export LOCAL_SUBNET="192.168.200.0\/24"
 export REMOTE_ROUTER_IP="172.16.100.2"
