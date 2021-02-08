@@ -9,7 +9,7 @@ RUN yum update -y \
  && mkdir /opt/ryu /opt/ryu_chameleon
 
 RUN git clone https://github.com/faucetsdn/ryu.git /opt/ryu \
- && cd /opt/ryu ; pip install .
+ && cd /opt/ryu ; pip3 install .
 
 RUN git clone https://github.com/ChameleonCloud/ryu.git /opt/ryu_chameleon \
  && ln -s /opt/ryu_chameleon/ryu/app /opt/ryu_app
