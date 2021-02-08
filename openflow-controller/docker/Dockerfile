@@ -8,7 +8,7 @@ RUN yum update -y \
  && yum install -y python3-pip \
  && mkdir /opt/ryu /opt/ryu_chameleon
 
-RUN git clone git://github.com/osrg/ryu.git /opt/ryu \
+RUN git clone https://github.com/faucetsdn/ryu.git /opt/ryu \
  && cd /opt/ryu ; pip install .
 
 RUN git clone https://github.com/ChameleonCloud/ryu.git /opt/ryu_chameleon \
