@@ -9,4 +9,4 @@ RYU_APP="/opt/ryu_app/simple_switch_13_custom_chameleon.py"
 RYU_REST="/opt/ryu_app/ofctl_rest.py"
 OFP_TCP_LISTEN_PORT="6653"
 RYU_CONFIG="/opt/ryu_app/ryu.conf"
-/usr/bin/ryu-manager --config-file ${RYU_CONFIG} --pid-file ${RYU_PID_FILE} --ofp-tcp-listen-port ${OFP_TCP_LISTEN_PORT} --log-file ${RYU_LOG_FILE} --app-lists ${RYU_REST} ${RYU_APP}
+/usr/local/bin/ryu-manager --config-file ${RYU_CONFIG} --pid-file ${RYU_PID_FILE} --ofp-tcp-listen-port ${OFP_TCP_LISTEN_PORT} --log-file ${RYU_LOG_FILE} --app-lists ${RYU_REST} ${RYU_APP}
