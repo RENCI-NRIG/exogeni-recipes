@@ -47,7 +47,7 @@ MNIC=ens192
 sed -i -r "s/(^MNIC=).*/\1${MNIC}/g" automation/${ANSWER_FILE_CUSTOM}
 
 # Management DNS
-MDNS="8.8.8.8 8.8.4.4"
+MDNS="\"8.8.8.8 8.8.4.4\""
 sed -i -r "s/.*(MDNS=).*/\1${MDNS}/g" automation/${ANSWER_FILE_CUSTOM}
 
 # Management Gateway
