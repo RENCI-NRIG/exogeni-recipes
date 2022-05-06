@@ -34,6 +34,10 @@ cp automation/${ANSWER_FILE_TEMPLATE} automation/${ANSWER_FILE_CUSTOM}
 # Modify variables (see so-whiptail)
 #
 
+# Manager Server Hostname
+HOSTNAME=$(hostname | cut -d"." -f 1)
+sed -i -r "s/.*(HOSTNAME=).*/\1${HOSTNAME}/g" automation/${ANSWER_FILE_CUSTOM}
+
 # Allowed IP or Subnet
 ALLOW_CIDR="192.168.0.0\/16"
 sed -i -r "s/(^ALLOW_CIDR=).*/\1${ALLOW_CIDR}/g" automation/${ANSWER_FILE_CUSTOM}
@@ -67,7 +71,7 @@ MSEARCH="renci.ben"
 sed -i -r "s/.*(MSEARCH=).*/\1${MSEARCH}/g" automation/${ANSWER_FILE_CUSTOM}
 
 # Manager Server Hostname
-MSRV=$(hostname)
+MSRV=$(hostname | cut -d"." -f 1)
 sed -i -r "s/.*(MSRV=).*/\1${MSRV}/g" automation/${ANSWER_FILE_CUSTOM}
 
 # MTU for the monitor NICs
