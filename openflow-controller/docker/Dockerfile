@@ -1,11 +1,11 @@
-FROM centos:7
+FROM rockylinux:8
 
 MAINTAINER mcevik mcevik@renci.org
 
-RUN yum update -y \
- && yum install -y epel-release \
- && yum install -y wget vim lsof git \
- && yum install -y python3-pip \
+RUN dnf update -y \
+ && dnf install -y epel-release \
+ && dnf install -y wget vim lsof git \
+ && dnf install -y python3-pip \
  && mkdir /opt/ryu /opt/ryu_chameleon
 
 RUN git clone https://github.com/faucetsdn/ryu.git /opt/ryu \
@@ -18,3 +18,4 @@ COPY ryu.conf /opt/ryu_app/ryu.conf
 COPY ryu_start.sh .
 RUN chmod +x /ryu_start.sh
 CMD /ryu_start.sh; /bin/bash
+
