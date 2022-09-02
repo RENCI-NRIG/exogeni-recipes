@@ -1,98 +1,53 @@
 #!/bin/bash
-
 {
-CHAMELEON_RYU_URL="https://github.com/ChameleonCloud/ryu.git"
-CHAMELEON_RYU_APP="simple_switch_13_custom_chameleon.py"
+set -e -u -o pipefail
 
-RYU_DIR="/opt/ryu"
-RYU_REST_APP="ofctl_rest.py"
-
-yum install -y epel-release
-yum install -y python-pip git
-pip install ryu
-pip install --upgrade pip
-# Remedy some version conflicts
-# These packages are already installed, ryu installation requirements are satisfied, but running the 
-# code generates errors with existing versions of six and netaddr. Needs to be updated.
-pip install --upgrade six
-pip install --upgrade --ignore-installed netaddr
-
-useradd openflow
-usermod -s /sbin/nologin openflow
-
-mkdir ${RYU_DIR} && mkdir ${RYU_DIR}/repo
-
-# Ryu Application file that is customized for Chameleon use-case
-git clone ${CHAMELEON_RYU_URL} ${RYU_DIR}/repo
-ln -s ${RYU_DIR}/repo/ryu/app/${CHAMELEON_RYU_APP} ${RYU_DIR}/${CHAMELEON_RYU_APP}
-ln -s ${RYU_DIR}/repo/ryu/app/${RYU_REST_APP} ${RYU_DIR}/${RYU_REST_APP}
-
-
-chown -R openflow. ${RYU_DIR}
-mkdir /var/run/ryu
-chown openflow. /var/run/ryu
-mkdir /var/log/ryu 
-chown openflow. /var/log/ryu
-
-
-# OFP_TCP_LISTEN_PORT line (below) is processed in Chameleon Heat Template for user input.
-# This line should not be modified.
-cat << EOF > /etc/sysconfig/ryu 
-RYU_PID_FILE="/var/run/ryu/ryu-manager.pid"
-RYU_LOG_FILE="/var/log/ryu/ryu-manager.log"
-RYU_CONFIG_DIR="/opt/ryu/etc"
-RYU_APP="${RYU_DIR}/${CHAMELEON_RYU_APP}"
-RYU_REST="${RYU_DIR}/${RYU_REST_APP}"
+RECIPE_REPO="https://github.com/RENCI-NRIG/exogeni-recipes.git"
+RECIPE_DIR="/opt/exogeni-recipes"
+RECIPE_APP="openflow-controller/docker"
+DOCKER_IMAGE="ryu-docker"
+DOCKER_CONTAINER_NAME="ryu-controller"
+# Change OFP_TCP_LISTEN_PORT with desired value
 OFP_TCP_LISTEN_PORT="6653"
-EOF
+# Change OFP_WSGI_LISTEN_PORT with desired value
+OFP_WSGI_LISTEN_PORT="8080"
+RYU_APP="/opt/ryu_app/simple_switch_13_custom_chameleon.py"
+# Used for port mirroring via openflow
+MIRROR_PORT="10000"
 
+sudo dnf install -y yum-utils device-mapper-persistent-data lvm2 vim
 
-cat << EOF > /etc/systemd/system/ryu.service 
-[Unit]
-Description=Ryu Openflow Controller Service
-After=network.target
+echo "Installing Docker ..."
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install -y docker-ce
+sudo systemctl start docker
 
-[Service]
-EnvironmentFile=/etc/sysconfig/ryu
-User=openflow
-ExecStart=/usr/bin/ryu-manager --pid-file \${RYU_PID_FILE} --ofp-tcp-listen-port \${OFP_TCP_LISTEN_PORT} --log-file \${RYU_LOG_FILE} --app-lists \${RYU_REST} \${RYU_APP}
-KillMode=process
-Restart=on-abort
+echo "Configuring Ryu controller ..."
+git clone  --no-checkout $RECIPE_REPO $RECIPE_DIR
+cd $RECIPE_DIR && git config core.sparsecheckout true
+echo "$RECIPE_APP/*" >> .git/info/sparse-checkout
+git read-tree -m -u HEAD
+pushd ${RECIPE_DIR}/${RECIPE_APP}
+sed -r -i 's/^(RYU_APP=.*)/#\1/g' ryu_start.sh
+sed -r -i 's/^(OFP_TCP_LISTEN_PORT=.*)/#\1/g' ryu_start.sh
 
-[Install]
-WantedBy=multi-user.target
-EOF
+echo "Building Ryu controller image ..."
+docker build -t ${DOCKER_IMAGE} .
 
+echo "Starting Ryu controller ..."
+docker run --rm -dit \
+  -p $OFP_TCP_LISTEN_PORT:$OFP_TCP_LISTEN_PORT \
+  -p $OFP_WSGI_LISTEN_PORT:$OFP_WSGI_LISTEN_PORT \
+  -v opt_ryu_chameleon:/opt/ryu_chameleon \
+  -v opt_ryu:/opt/ryu \
+  -v var_log_ryu:/var/log/ryu \
+  -v var_run_ryu:/var/run/ryu \
+  -e RYU_APP=$RYU_APP -e OFP_TCP_LISTEN_PORT=$OFP_TCP_LISTEN_PORT \
+  --name=$DOCKER_CONTAINER_NAME \
+  $DOCKER_IMAGE
 
-cat << EOF > /etc/logrotate.d/ryu
-/var/log/ryu/*.log {
-    rotate 2
-    missingok
-    nocreate
-    sharedscripts
-    size 100M
-    compress
-    postrotate
-        /bin/systemctl restart ryu.service 2> /dev/null || true
-    endscript
-}
-EOF
+echo "Opening OF controller port ..."
+ufw allow $OFP_TCP_LISTEN_PORT
 
-
-# https://www.freedesktop.org/software/systemd/man/systemd-tmpfiles.html
-echo "d /var/run/ryu 0775 root openflow" > /usr/lib/tmpfiles.d/ryu.conf
-
-echo "systemctl enable ryu"
-systemctl enable ryu
-
-echo "systemctl daemon-reload"
-systemctl daemon-reload
-
-echo "systemctl restart ryu"
-systemctl start ryu
-
-echo "systemctl status ryu"
-systemctl status ryu
-
-echo "--- Postboot script done"
+echo "Done."
 } > /tmp/boot.log 2>&1
